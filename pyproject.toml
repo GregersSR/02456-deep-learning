@@ -8,6 +8,6 @@ dependencies = [
     "shapely",
     "matplotlib",
     "PyQt6; sys_platform == 'linux'",
-    "aiohttp",
-    "aiofiles",
+    "pyarrow",
+    "ipykernel",
 ]

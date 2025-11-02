@@ -17,6 +17,11 @@ def track_filter(g):
         time_filt = (g["Timestamp"].max() - g["Timestamp"].min()).total_seconds() >= 60 * 60  # Min required timespan
         return len_filt and sog_filt and time_filt
 
+def downsample(df: pd.DataFrame, resolution):
+     df['truncated'] = df['Timestamp'].dt.floor(resolution)
+     df.drop_duplicates(['truncated', 'MMSI'], keep='first', inplace=True)
+     df.drop(columns= ['truncated'], inplace=True)
+
 def preprocess_partial(df: pd.DataFrame) -> pd.DataFrame:
     """This preprocessing is applied to each day-df individually"""
     # Remove errors
@@ -34,7 +39,8 @@ def preprocess_partial(df: pd.DataFrame) -> pd.DataFrame:
     df["Timestamp"] = pd.to_datetime(df["Timestamp"], format="%d/%m/%Y %H:%M:%S", errors="raise")
 
 
-    df.drop_duplicates(["Timestamp", "MMSI", ], keep="first", inplace=True)
+    #df.drop_duplicates(["Timestamp", "MMSI", ], keep="first", inplace=True)
+    downsample(df, 'min')
 
     # Track filtering
     df = df.groupby("MMSI").filter(track_filter)
