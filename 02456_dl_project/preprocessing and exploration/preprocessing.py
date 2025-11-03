@@ -24,15 +24,15 @@ def downsample(df: pd.DataFrame, resolution):
 
 def preprocess_partial(df: pd.DataFrame) -> pd.DataFrame:
     """This preprocessing is applied to each day-df individually"""
-    # Remove errors
+    # Remove location errors by filtering out points outside bounding box
     north, west, south, east = BBOX
     df = df[(df["Latitude"] <= north) & (df["Latitude"] >= south) & (df["Longitude"] >= west) & (
             df["Longitude"] <= east)]
     
-    # Filter out irrelevant vessel types and drop the column
+    # Keeps only Class A and Class B ships. Drops “Type of mobile” column afterward.
     df = df[df["Type of mobile"].isin(["Class A", "Class B"])].drop(columns=["Type of mobile"])
     df = df[df["MMSI"].str.len() == 9]  # Adhere to MMSI format
-    df = df[df["MMSI"].str[:3].astype(int).between(200, 775)]  # Adhere to MID standard
+    df = df[df["MMSI"].str[:3].astype(int).between(200, 775)]  # Must start with a valid Maritime Identification Digit (MID) between 200–775.
 
     df = df.rename(columns={"# Timestamp": "Timestamp"})
     # raises errors as opposed to Peder's code so we see any data quality issues
@@ -44,8 +44,8 @@ def preprocess_partial(df: pd.DataFrame) -> pd.DataFrame:
 
     # Track filtering
     df = df.groupby("MMSI").filter(track_filter)
-    df = df.sort_values(['MMSI', 'Timestamp'])
-    df["SOG"] = KNOTS_TO_MS * df["SOG"]
+    df = df.sort_values(['MMSI', 'Timestamp']) # Sort after filtering to avoid unnecessary sorting of dropped data
+    df["SOG"] = KNOTS_TO_MS * df["SOG"] # Convert SOG to m/s
     return df
 
 def preprocess_full(df: pd.DataFrame) -> pd.DataFrame:
