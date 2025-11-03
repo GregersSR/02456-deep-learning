@@ -1,0 +1,13 @@
+[project]
+name = "02456-dl-project"
+version = "0.1"
+dependencies = [
+    "pandas",
+    "geopandas",
+    "geodatasets",
+    "shapely",
+    "matplotlib",
+    "PyQt6; sys_platform == 'linux'",
+    "pyarrow",
+    "ipykernel",
+]
