@@ -20,7 +20,7 @@ def track_filter(g):
 def downsample(df: pd.DataFrame, resolution):
      df['truncated'] = df['Timestamp'].dt.floor(resolution)
      df.drop_duplicates(['truncated', 'MMSI'], keep='first', inplace=True)
-     df.drop(columns= ['truncated'], inplace=True)
+     df.drop(columns= ['truncated'], inplace=True) 
 
 def preprocess_partial(df: pd.DataFrame) -> pd.DataFrame:
     """This preprocessing is applied to each day-df individually"""
@@ -40,7 +40,7 @@ def preprocess_partial(df: pd.DataFrame) -> pd.DataFrame:
 
 
     #df.drop_duplicates(["Timestamp", "MMSI", ], keep="first", inplace=True)
-    downsample(df, 'min')
+    downsample(df, 'min') #downsample to 1 minute resolution
 
     # Track filtering
     df = df.groupby("MMSI").filter(track_filter)
