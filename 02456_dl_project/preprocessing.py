@@ -40,7 +40,7 @@ def preprocess_partial(df: pd.DataFrame) -> pd.DataFrame:
 
 
     #df.drop_duplicates(["Timestamp", "MMSI", ], keep="first", inplace=True)
-    downsample(df, 'min') #downsample to 1 minute resolution
+    downsample(df, '5min') #downsample to 5 minute resolution
 
     # Track filtering
     df = df.groupby("MMSI").filter(track_filter)
