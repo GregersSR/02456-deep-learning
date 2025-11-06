@@ -1,7 +1,9 @@
 from pathlib import Path
 from collections.abc import Generator
+from typing import IO, Union
 from zipfile import ZipFile
 import pandas as pd
+import os
 
 DTYPES = {
         "MMSI": "object",
@@ -13,16 +15,15 @@ DTYPES = {
         "Type of mobile": "object",
 }
 
-def read_zip(p: Path) -> pd.DataFrame:
+def read_zip(p: Union[os.PathLike, IO[bytes]]) -> Generator[pd.DataFrame]:
     with ZipFile(p) as zip:
-        files = zip.infolist()
-        if len(files) != 1:
-            raise ValueError(f"Expected zip file to have a single member, not {len(files)}.")
-        with zip.open(files[0]) as fp:
-            usecols = list(DTYPES.keys())
-            return pd.read_csv(fp, usecols=usecols, dtype=DTYPES)
+        files = sorted((f for f in zip.infolist() if f.filename.endswith('.csv')), key=lambda f: f.filename)
+        for file in files:
+            with zip.open(file) as fp:
+                usecols = list(DTYPES.keys())
+                yield pd.read_csv(fp, usecols=usecols, dtype=DTYPES)
 
 def read_all(dir: Path) -> Generator[pd.DataFrame]:
     zips = sorted(filter(lambda p: p.suffix == '.zip', dir.iterdir()), key=lambda p: p.name)
     for day_f in zips:
-        yield read_zip(day_f)
+        yield from read_zip(day_f)

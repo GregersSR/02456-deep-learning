@@ -1,7 +1,7 @@
 # === Custom rules ===
 
-data
-processed_data
+data*/
+processed_data*/
 port_locodes.csv
 
 # ====================
