@@ -16,8 +16,6 @@ A = TypeVar('A')
 Pair = tuple[A, A]
 Tensor = torch.Tensor
 
-
-
 def sliding_windows(segment: np.array) -> Generator[Pair[np.array]]:
     """Split a segment into sliding window rows.
     
@@ -35,10 +33,6 @@ def sliding_windows(segment: np.array) -> Generator[Pair[np.array]]:
         y_start = x_start + LOOKBACK
         y_end = y_start + N_PREDICT
         yield segment[x_start:y_start], segment[y_start:y_end]
-
-def positional_encoding(grouping, target_column):
-    for _, rows in grouping:
-        rows[target_column] = range(0, len(rows))
 
 def to_tensors(df: pd.DataFrame) -> Pair[torch.Tensor]:
     """Extracts features from a DataFrame
@@ -85,10 +79,17 @@ class AisDataset(TensorDataset):
     @classmethod
     def train(cls):
         return cls.from_pq(SPLITS_DIR / 'train.parquet')
+    
+    @classmethod
+    def val(cls):
+        return cls.from_pq(SPLITS_DIR / 'val.parquet')
 
 
 def load_train() -> Dataset:
     return AisDataset.train()
+
+def load_val() -> Dataset:
+    return AisDataset.val()
 
 if __name__ == '__main__':
     load_train()
