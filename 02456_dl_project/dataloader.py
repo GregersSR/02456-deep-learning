@@ -36,10 +36,6 @@ def sliding_windows(segment: np.array) -> Generator[Pair[np.array]]:
         y_end = y_start + N_PREDICT
         yield segment[x_start:y_start], segment[y_start:y_end]
 
-def positional_encoding(grouping, target_column):
-    for _, rows in grouping:
-        rows[target_column] = range(0, len(rows))
-
 def to_tensors(df: pd.DataFrame) -> Pair[torch.Tensor]:
     """Extracts features from a DataFrame
     
