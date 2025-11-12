@@ -16,8 +16,6 @@ A = TypeVar('A')
 Pair = tuple[A, A]
 Tensor = torch.Tensor
 
-
-
 def sliding_windows(segment: np.array) -> Generator[Pair[np.array]]:
     """Split a segment into sliding window rows.
     
@@ -81,10 +79,17 @@ class AisDataset(TensorDataset):
     @classmethod
     def train(cls):
         return cls.from_pq(SPLITS_DIR / 'train.parquet')
+    
+    @classmethod
+    def val(cls):
+        return cls.from_pq(SPLITS_DIR / 'val.parquet')
 
 
 def load_train() -> Dataset:
     return AisDataset.train()
+
+def load_val() -> Dataset:
+    return AisDataset.val()
 
 if __name__ == '__main__':
     load_train()
