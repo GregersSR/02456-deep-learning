@@ -12,6 +12,7 @@ dependencies = [
     "ipykernel",
     "torch",
     "tqdm",
+    "scikit-learn",
 ]
 
 [build-system]
