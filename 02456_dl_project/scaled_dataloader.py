@@ -47,30 +47,26 @@ def to_tensors(df: pd.DataFrame) -> Pair[torch.Tensor]:
     The first dimension indexes over the sliding windows, the second over the sequence of 30 data points and the third over the 4 features of each data point (LAT, LONG, SOG, COG).
     """
     # sort by ts so we can easily compute the positional encoding
-    df.sort_values(by='Timestamp')
-    df.drop(columns=['Timestamp', 'MMSI'], inplace=True)
+    df.sort_values(by='Timestamp', inplace=True)
+    df.drop(columns=['Timestamp', 'MMSI', 'SOG', 'COG'], inplace=True)
     segments = df.groupby('segment_id').apply(pd.DataFrame.to_numpy, include_groups=False).to_numpy()
     # Now we have a Numpy array of length (n_segments) in the first layer, (segment length) in the second layer
-    print("Initial data manipulation done, computing sliding windows and building x and y tensors . . .")
     windows = itertools.chain.from_iterable(sliding_windows(segment) for segment in tqdm.tqdm(segments))
     xs = []
     ys = []
     for x, y in windows:
         xs.append(torch.Tensor(x))
         ys.append(torch.Tensor(y))
-    print("Built tensor lists")
     xs = torch.stack(xs)
     ys = torch.stack(ys)
-    print("Built full tensors")
-    print(xs.shape, ys.shape)
     return xs, ys
 
-# dataset with scaling + COG sin/cos encoding
+# dataset with scaling
 class AisDataset(Dataset): 
     def __init__(self, x_tensor: Tensor, y_tensor: Tensor, scaler: StandardScaler | None = None):
         """
-        x_tensor: raw shape (n_windows, 30, 4)
-        y_tensor: raw shape (n_windows, 10, 4)
+        x_tensor: raw shape (n_windows, 30, 2)
+        y_tensor: raw shape (n_windows, 10, 2)
         scaler: fitted StandardScaler (train) or same scaler (val)
         """
         self.scaler = scaler
@@ -80,24 +76,16 @@ class AisDataset(Dataset):
 
     def _process(self, tensor: Tensor) -> Tensor:
         """
-        Takes in a tensor of shape (N, seq, 4) and returns (N, seq, 5):
-        - LAT, LON, SOG scaled with StandardScaler
-        - COG → sin/cos encoding
+        Takes in a tensor of shape (N, seq, 2) and returns (N, seq, 2):
+        - LAT, LON scaled with StandardScaler
         """
         arr = tensor.numpy()
 
-    
-        # keep only LAT, LON → shape (N, seq_len, 2)
-        arr = np.concatenate(
-            [arr[:, :, :2]],
-            axis=-1
-        )
-
         if self.scaler is not None:
-            N, seq_len, F = arr.shape      # F = 2
-            flat = arr.reshape(-1, F)      # (N*seq_len, 2)
+            N, seq_len, n_features = arr.shape      # n_features = 2
+            flat = arr.reshape(N * seq_len, n_features)
             flat = self.scaler.transform(flat)
-            arr = flat.reshape(N, seq_len, F)
+            arr = flat.reshape(N, seq_len, n_features)
 
         return torch.tensor(arr, dtype=torch.float32)
 
@@ -120,15 +108,17 @@ def load_train() -> tuple[AisDataset, StandardScaler]:
     print("Loading TRAIN...")
     x_train, y_train = _load_raw("train")
 
-    # fit scaler on LAT/LON/SOG only
-    flat_train = x_train.numpy().reshape(-1, 3)
+    # fit scaler on LAT/LON only
+    scaler = StandardScaler()
+    N, seq_len, n_features = x_train.shape
+    flat_train = x_train.reshape(N * seq_len, n_features)
     scaler = StandardScaler()
     scaler.fit(flat_train[:, :2])
 
     ds = AisDataset(x_train, y_train, scaler=scaler)
     return ds, scaler
 
-def load_val(scaler) -> AisDataset:
+def load_val(scaler: StandardScaler) -> AisDataset:
     print("Loading VAL...")
     x_val, y_val = _load_raw("val")
     return AisDataset(x_val, y_val, scaler=scaler)
@@ -140,3 +130,6 @@ if __name__ == '__main__':
     val_ds = load_val(scaler)
     print("Train windows:", len(train_ds))
     print("Val windows:", len(val_ds))
+    x_batch, y_batch = train_ds[0]                                                          
+    print("x_batch shape:", x_batch.shape)                                                  
+    print("y_batch shape:", y_batch.shape) 
