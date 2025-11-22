@@ -92,4 +92,20 @@ def load_val() -> Dataset:
     return AisDataset.val()
 
 if __name__ == '__main__':
-    load_train()
+    # Load datasets
+    train_dataset = load_train()
+    val_dataset = load_val()
+    
+    def print_first_n_windows(dataset, name: str, n: int = 100):
+        print(f"\n{name} dataset: first {n} windows")
+        for i in range(min(n, len(dataset))):
+            x, y = dataset[i]
+            print(f"\nWindow {i}:")
+            print("x.shape =", x.shape)
+            print(x)
+            print("y.shape =", y.shape)
+            print(y)
+    
+    print_first_n_windows(train_dataset, "Train")
+
+
