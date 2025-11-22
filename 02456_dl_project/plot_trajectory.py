@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 
 def plot_paths(x_sample, y_true, y_pred, idx):
     # Past  
-    x_sample = x_sample.reshape(30, 4) # reshape back
+    x_sample = x_sample.reshape(30, 5) # reshape back
     # True future
     y_true_sample = y_true
     # Predicted future
