@@ -3,8 +3,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from dataloader import load_train, load_val
-from sklearn.preprocessing import StandardScaler
 import numpy as np
 import matplotlib.pyplot as plt
 from plot_trajectory import plot_paths
@@ -14,11 +12,7 @@ import math
 import os
 import json
 import copy
-
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print("Using device:", device)
-
+import training
 
 
 class PositionalEncoding(nn.Module):
@@ -46,8 +40,8 @@ class PositionalEncoding(nn.Module):
 class TrajectoryTransformer30to10(nn.Module):
     def __init__(
         self,
-        input_dim: int,
-        output_dim: int,
+        input_dim: int = 2,
+        output_dim: int = 2,
         d_model: int = 128,
         nhead: int = 4,
         num_layers: int = 3,

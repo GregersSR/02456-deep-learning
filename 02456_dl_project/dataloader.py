@@ -63,6 +63,8 @@ def to_tensors(df: pd.DataFrame) -> Pair[torch.Tensor]:
 
 # dataset with scaling
 class AisDataset(Dataset): 
+    scaler: StandardScaler
+    
     def __init__(self, x_tensor: Tensor, y_tensor: Tensor, scaler: StandardScaler | None = None):
         """
         x_tensor: raw shape (n_windows, 30, 2)
