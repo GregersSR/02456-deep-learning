@@ -244,20 +244,22 @@ def remove_existing(configs):
 def load_data():
     train, scaler = dataloader.load_train()
     val = dataloader.load_val(scaler or train.scaler)
-    return train, val
+    return train, val, scaler
 
 def main():
-    train, val = load_data()
+    now = isonow()
+    train, val, scaler = load_data()
+    torch.save(scaler, paths.CHECKPOINTS_DIR / f"data_scaler-{now}.pt")
     lstm_results = training.train_all(LSTMModel, remove_existing(lstm_configs), defaults=lstm_defaults, train=train, val=val)
     autoreg_results = training.train_all(Seq2SeqLSTM, remove_existing(autoreg_configs), defaults=autoreg_defaults, train=train, val=val)
     transformer_results = training.train_all(TrajectoryTransformer30to10, remove_existing(transformer_configs), defaults=transformer_defaults, train=train, val=val)
     baseline_results = train_linear_model(train, val)
     all_results = {**lstm_results, **autoreg_results, **transformer_results, **baseline_results}
-    torch.save(all_results, paths.CHECKPOINTS_DIR / f"all_models_results-{isonow()}.pt")
+    torch.save(all_results, paths.CHECKPOINTS_DIR / f"all_models_results-{now}.pt")
     for result in all_results.values():
         del result['model']  # remove model from saved results for JSON serialization
         result['checkpoint_path'] = str(result['checkpoint_path'])
-    with paths.CHECKPOINTS_DIR.joinpath(f"all_models_results-{isonow()}.json").open('w') as f:
+    with paths.CHECKPOINTS_DIR.joinpath(f"all_models_results-{now}.json").open('w') as f:
         json.dump(all_results, fp=f, indent=4)
 
 if __name__ == "__main__":
