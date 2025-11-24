@@ -1,6 +1,6 @@
 from collections.abc import Generator
 import itertools
-from typing import TypeVar
+from typing import Optional, TypeVar
 import pandas as pd
 import numpy as np
 import torch
@@ -79,7 +79,7 @@ def to_tensors(df: pd.DataFrame) -> Pair[torch.Tensor]:
 class AisDataset(Dataset): 
     scaler: StandardScaler
     
-    def __init__(self, x_tensor: Tensor, y_tensor: Tensor, scaler: StandardScaler | None = None):
+    def __init__(self, x_tensor: Tensor, y_tensor: Tensor, scaler: Optional[StandardScaler] = None):
         """
         x_tensor: raw shape (n_windows, 30, 2)
         y_tensor: raw shape (n_windows, 10, 2)
