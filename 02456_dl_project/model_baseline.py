@@ -1,4 +1,5 @@
 import math
+import numpy as np
 from sklearn.linear_model import LinearRegression
 import torch
 
@@ -13,28 +14,28 @@ class LinearModel(LinearRegression):
     @classmethod
     def train(cls, train: torch.Tensor):
         model = cls()
-        train_X = train.X.view(train.X.size(0), -1)
+        train_x = train.x.view(train.x.size(0), -1)
         train_y = train.y.view(train.y.size(0), -1)
 
-        model.fit(train_X, train_y)
+        model.fit(train_x, train_y)
         return model
 
     def evaluate(self, train: torch.Tensor, val: torch.Tensor):
-        train_X = train.X.view(train.X.size(0), -1)
+        train_x = train.x.view(train.x.size(0), -1)
         train_y = train.y.view(train.y.size(0), -1)
-        val_X = val.X.view(val.X.size(0), -1)
+        val_x = val.x.view(val.x.size(0), -1)
         val_y = val.y.view(val.y.size(0), -1)
 
-        y_train_pred = self.predict(train_X)
-        y_val_pred = self.predict(val_X)
+        y_train_pred = self.predict(train_x)
+        y_val_pred = self.predict(val_x)
         
-        train_mse = ((y_train_pred - train_y.numpy()) ** 2).mean()
+        train_mse = ((y_train_pred - train_y.numpy()) ** 2).mean().item()
         train_rmse = math.sqrt(train_mse)
-        train_mae = ((y_train_pred - train_y.numpy()).abs()).mean()
+        train_mae = (np.abs(y_train_pred - train_y.numpy())).mean().item()
         train_loss = train_mse
-        val_mse = ((y_val_pred - val_y.numpy()) ** 2).mean()
+        val_mse = ((y_val_pred - val_y.numpy()) ** 2).mean().item()
         val_rmse = math.sqrt(val_mse)
-        val_mae = ((y_val_pred - val_y.numpy()).abs()).mean()
+        val_mae = (np.abs(y_val_pred - val_y.numpy())).mean().item()
         val_loss = val_mse
 
         return {
