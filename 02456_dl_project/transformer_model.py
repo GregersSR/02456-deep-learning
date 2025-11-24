@@ -9,6 +9,11 @@ from plot_trajectory import plot_paths
 #from metrics import rmse, mse, mae
 
 class PositionalEncoding(nn.Module):
+    """
+    Implements the positional encoding as described in the "Attention is All You Need" paper.
+    
+    Largely borrowed from the lecture material.
+    """
     def __init__(self, d_model: int, max_len: int = 5000):
         super().__init__()
         pe = torch.zeros(max_len, d_model)
