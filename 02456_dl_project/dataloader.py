@@ -37,15 +37,15 @@ def sliding_windows(segment: np.array) -> Generator[Pair[np.array]]:
 
 def is_stationary_segment(segment, threshold = 2e-4):
     """Detects whether a vessel is moving or not.
-    threshold: total lat and lon movement below threshold is considered stationary
+    threshold: lat and lon movement below threshold is considered stationary
     """
     lat = segment[:, 0]
     lon = segment[:, 1]
-    
-    diffs = np.sqrt(np.diff(lat)**2 + np.diff(lon)**2)
-    total_change = diffs.sum()
-    
-    return total_change < threshold
+
+    lat_diff = lat.max() - lat.min()
+    lon_diff = lon.max() - lon.min()
+
+    return lat_diff < threshold and lon_diff < threshold
 
 
 def to_tensors(df: pd.DataFrame) -> Pair[torch.Tensor]:
@@ -63,14 +63,14 @@ def to_tensors(df: pd.DataFrame) -> Pair[torch.Tensor]:
     df.sort_values(by='Timestamp', inplace=True)
     df.drop(columns=['Timestamp', 'MMSI', 'SOG', 'COG'], inplace=True)
     segments = df.groupby('segment_id').apply(pd.DataFrame.to_numpy, include_groups=False).to_numpy()
-    filtered_segments = [seg for seg in segments if not is_stationary_segment(seg, threshold = 2e-4)]
     # Now we have a Numpy array of length (n_segments) in the first layer, (segment length) in the second layer
-    windows = itertools.chain.from_iterable(sliding_windows(segment) for segment in tqdm.tqdm(filtered_segments))
+    windows = itertools.chain.from_iterable(sliding_windows(segment) for segment in tqdm.tqdm(segments))
     xs = []
     ys = []
-    for x, y in windows:        
-        xs.append(torch.Tensor(x))
-        ys.append(torch.Tensor(y))
+    for x, y in windows:
+        if not is_stationary_segment(x) and not is_stationary_segment(y):        
+            xs.append(torch.Tensor(x))
+            ys.append(torch.Tensor(y))
     xs = torch.stack(xs)
     ys = torch.stack(ys)
     return xs, ys
