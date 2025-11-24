@@ -12,6 +12,7 @@ import paths
 from model_lstm import LSTMModel
 from model_autoregressive import Seq2SeqLSTM
 from transformer_model import TrajectoryTransformer30to10
+from model_baseline import LinearModel
 from datetime import datetime
 
 transformer_defaults = {
@@ -203,6 +204,26 @@ autoreg_configs = [
 ]
 
 
+def train_linear_model(train: torch.Tensor, val: torch.Tensor):
+    model = LinearModel.train(train)
+    results = model.evaluate(train, val)
+    model_path = training.checkpoint_model_path('linear_model')
+    torch.save(model, model_path)
+    # wrap losses in lists so they look like other models' histories over epochs
+    results_compat = {k: [v] for k, v in results.items()}
+    return {
+        'linear_model': {
+            'config': {
+                'name': 'linear_model',
+                'model_kwargs': {},
+            },
+            'model': model,
+            'history': results_compat,
+            'checkpoint_path': model_path,
+        }
+    }
+
+
 def isonow():
     return datetime.now().replace(microsecond=0).isoformat()
 
@@ -230,7 +251,8 @@ def main():
     lstm_results = training.train_all(LSTMModel, remove_existing(lstm_configs), defaults=lstm_defaults, train=train, val=val)
     autoreg_results = training.train_all(Seq2SeqLSTM, remove_existing(autoreg_configs), defaults=autoreg_defaults, train=train, val=val)
     transformer_results = training.train_all(TrajectoryTransformer30to10, remove_existing(transformer_configs), defaults=transformer_defaults, train=train, val=val)
-    all_results = {**lstm_results, **autoreg_results, **transformer_results}
+    baseline_results = train_linear_model(train, val)
+    all_results = {**lstm_results, **autoreg_results, **transformer_results, **baseline_results}
     torch.save(all_results, paths.CHECKPOINTS_DIR / f"all_models_results-{isonow()}.pt")
     for result in all_results.values():
         del result['model']  # remove model from saved results for JSON serialization

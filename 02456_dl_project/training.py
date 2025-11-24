@@ -127,9 +127,11 @@ def train_model(
     best_ckpt_path = checkpoint_model_path(model_name)
 
     history = {
+        "train_loss": [],
         "train_mse": [],
         "train_rmse": [],
         "train_mae": [],
+        "val_loss": [],
         "val_mse": [],
         "val_rmse": [],
         "val_mae": [],
@@ -138,6 +140,7 @@ def train_model(
     for epoch in range(1, num_epochs + 1):
         # TRAIN
         model.train()
+        epoch_train_loss = 0.0
         train_se_acc = 0.0
         train_ae_acc = 0.0
         n_train = 0
@@ -155,19 +158,23 @@ def train_model(
 
             bs = X.size(0)
             # Calculate squared error and absolute error for the batch
-            se_batch = loss.item()
+            batch_loss = loss.item()
+            se_batch = torch.square(preds - Y).sum().item()
             ae_batch = torch.abs(preds - Y).sum().item()
 
+            epoch_train_loss += batch_loss
             train_se_acc += se_batch
             train_ae_acc += ae_batch
             n_train += bs
 
+        train_loss = epoch_train_loss / n_train
         train_mse = train_se_acc / n_train
         train_rmse = math.sqrt(train_mse)
         train_mae = train_ae_acc / n_train
 
         # VALIDATION
         model.eval()
+        epoch_val_loss = 0.0
         val_se_acc = 0.0
         val_ae_acc = 0.0
         n_val = 0
@@ -181,19 +188,24 @@ def train_model(
                 loss_v = criterion(preds_v, Yv)
 
                 bs = Xv.size(0)
-                se_batch = loss_v.item()
+                batch_loss = loss_v.item()
+                se_batch = torch.square(preds_v - Yv).sum().item()
                 ae_batch = torch.abs(preds_v - Yv).sum().item()
 
+                epoch_val_loss += batch_loss
                 val_se_acc += se_batch
                 val_ae_acc += ae_batch
                 n_val += bs
 
+        val_loss = epoch_val_loss / n_val
         val_mse = val_se_acc / n_val
         val_rmse = math.sqrt(val_mse)
         val_mae = val_ae_acc / n_val
+        history["train_loss"].append(train_loss)
         history["train_mse"].append(train_mse)
         history["train_rmse"].append(train_rmse)
         history["train_mae"].append(train_mae)
+        history["val_loss"].append(val_loss)
         history["val_mse"].append(val_mse)
         history["val_rmse"].append(val_rmse)
         history["val_mae"].append(val_mae)
