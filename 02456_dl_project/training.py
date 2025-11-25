@@ -31,9 +31,10 @@ from torch.utils.data import DataLoader
 from sklearn.preprocessing import StandardScaler
 import tqdm
 
-from paths import CHECKPOINTS_DIR
 import dataloader
-        
+from paths import CHECKPOINTS_DIR
+from util import isonow
+
 
 def determine_device():
     if torch.backends.mps.is_available():
@@ -125,6 +126,7 @@ def train_model(
 
     best_val_rmse = float("inf")
     best_ckpt_path = checkpoint_model_path(model_name)
+    epoch_since_best = 0
 
     history = {
         "train_loss": [],
@@ -216,8 +218,14 @@ def train_model(
         if val_rmse < best_val_rmse:
             best_val_rmse = val_rmse
             torch.save(model.state_dict(), best_ckpt_path)
+            epoch_since_best = 0
+        else:
+            epoch_since_best += 1
 
-        print(f"Epoch {epoch}/{num_epochs} | Train RMSE={train_rmse:.4f} | Val RMSE={val_rmse:.4f}")
+        print(f"Epoch {epoch}/{num_epochs} | Train RMSE={train_rmse:.4f} | Val RMSE={val_rmse:.4f} | Epochs since best: {epoch_since_best}")
+        if epoch_since_best >= 20:
+            print("Early stopping due to no improvement in validation RMSE for 20 epochs.")
+            break
 
     # return history
     return history
@@ -245,6 +253,7 @@ def train_with_config(model_fn, config, train=None, val=None):
     val_loader = DataLoader(val, batch_size=batch_size, shuffle=False)
 
     print(f"\n=== Training config: {name} ===")
+    print("Time: ", isonow())
     print("Model args:", model_kwargs)
     print("Epochs :", epochs)
     print("Batch size:", batch_size)
@@ -260,6 +269,7 @@ def train_with_config(model_fn, config, train=None, val=None):
         criterion=criterion,
         optimizer=optimizer,
     )
+    print(f"Finished training model: {name} at {isonow()}\n")
     return model, history
 
 def train_all(model_fn, configs, train=None, val=None, defaults={}):

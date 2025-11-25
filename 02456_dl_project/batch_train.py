@@ -13,7 +13,7 @@ from model_lstm import LSTMModel
 from model_autoregressive import Seq2SeqLSTM
 from transformer_model import TrajectoryTransformer30to10
 from model_baseline import LinearModel
-from datetime import datetime
+from util import isonow
 
 transformer_defaults = {
     "optimizer": torch.optim.AdamW,
@@ -223,9 +223,6 @@ def train_linear_model(train: torch.Tensor, val: torch.Tensor):
         }
     }
 
-
-def isonow():
-    return datetime.now().replace(microsecond=0).isoformat()
 
 def checkpoint_exists(name):
     return training.checkpoint_model_path(name).exists()
