@@ -5,6 +5,7 @@ Results are saved to `checkpoints/` directory.
 """
 
 import json
+import sys
 import torch
 import training
 import dataloader
@@ -203,7 +204,6 @@ autoreg_configs = [
     },
 ]
 
-
 def train_linear_model(train: torch.Tensor, val: torch.Tensor):
     model = LinearModel.train(train)
     results = model.evaluate(train, val)
@@ -243,7 +243,37 @@ def load_data():
     val = dataloader.load_val(scaler or train.scaler)
     return train, val, scaler
 
-def main():
+def find_cfg(name):
+    if "autoreg" in name:
+        return Seq2SeqLSTM, [cfg for cfg in autoreg_configs if cfg['name'] == name][0]
+    elif "transformer" in name:
+        return TrajectoryTransformer30to10, [cfg for cfg in transformer_configs if cfg['name'] == name][0]
+    elif name == "linear_model":
+        return LinearModel, {}
+    else:
+        return LSTMModel, [cfg for cfg in lstm_configs if cfg['name'] == name][0]
+
+def train_one(name):
+    model_cls, cfg = find_cfg(name)
+    now = isonow()
+    train, val, scaler = load_data()
+    if model_cls == LinearModel:
+        results = train_linear_model(train, val)['linear_model']
+    else:
+        model, history = training.train_with_config(model_cls, cfg, train=train, val=val)
+        results = {
+            'config': cfg,
+            'model': model,
+            'history': history,
+            'checkpoint_path': training.checkpoint_model_path(cfg['name']),
+        }
+    torch.save(results, paths.CHECKPOINTS_DIR / f"{name}_results-{now}.pt")
+    del results['model']  # remove model from saved results for JSON serialization
+    results['checkpoint_path'] = str(results['checkpoint_path'])
+    with paths.CHECKPOINTS_DIR.joinpath(f"{name}_results-{now}.json").open('w') as f:
+        json.dump(results, fp=f, indent=4)
+
+def train_all():
     now = isonow()
     train, val, scaler = load_data()
     torch.save(scaler, paths.CHECKPOINTS_DIR / f"data_scaler-{now}.pt")
@@ -260,4 +290,7 @@ def main():
         json.dump(all_results, fp=f, indent=4)
 
 if __name__ == "__main__":
-    main()
+    if sys.argv[1] == "all":
+        train_all()
+    else:
+        train_one(sys.argv[1])
