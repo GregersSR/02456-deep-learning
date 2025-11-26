@@ -3,10 +3,6 @@
 Implements a training loop with checkpointing and metrics,
 as well as helper functions to train several models with different configs.
 
-Example usage (inside a notebook):
-
-import
-
 # model = Seq2SeqLSTM(...) or TrajectoryTransformer30to10(...)
 # train_loader, val_loader created via dataloader.load_train()/load_val(scaler)
 
@@ -32,7 +28,7 @@ from sklearn.preprocessing import StandardScaler
 import tqdm
 
 import dataloader
-from paths import CHECKPOINTS_DIR
+from paths import CHECKPOINTS_DIR, ROOT
 from util import isonow
 
 
@@ -47,7 +43,7 @@ def determine_device():
 
 CHECKPOINTS_DIR.mkdir(parents=True, exist_ok=True)
 def checkpoint_model_path(model_name: str) -> Path:
-    return CHECKPOINTS_DIR / f"{model_name}_best.pt"
+    return (CHECKPOINTS_DIR / f"{model_name}_best.pt").relative_to(ROOT)
 
 def inverse_transform_batch(arr: torch.Tensor, scaler: StandardScaler) -> torch.Tensor:
     """Inverse-transform a batch tensor using a fitted sklearn scaler.
