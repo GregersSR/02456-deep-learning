@@ -12,6 +12,7 @@ from sklearn.preprocessing import StandardScaler
 
 LOOKBACK = 30
 N_PREDICT = 10
+FILTER_STATIONARY = False
 
 A = TypeVar('A')
 Pair = tuple[A, A]
@@ -35,17 +36,21 @@ def sliding_windows(segment: np.array) -> Generator[Pair[np.array]]:
         y_end = y_start + N_PREDICT
         yield segment[x_start:y_start], segment[y_start:y_end]
 
-def is_stationary_segment(segment, threshold = 2e-4):
-    """Detects whether a vessel is moving or not.
-    threshold: lat and lon movement below threshold is considered stationary
-    """
-    lat = segment[:, 0]
-    lon = segment[:, 1]
+if FILTER_STATIONARY:
+    def is_stationary_segment(segment, threshold = 2e-4):
+        """Detects whether a vessel is moving or not.
+        threshold: lat and lon movement below threshold is considered stationary
+        """
+        lat = segment[:, 0]
+        lon = segment[:, 1]
 
-    lat_diff = lat.max() - lat.min()
-    lon_diff = lon.max() - lon.min()
+        lat_diff = lat.max() - lat.min()
+        lon_diff = lon.max() - lon.min()
 
-    return lat_diff < threshold and lon_diff < threshold
+        return lat_diff < threshold and lon_diff < threshold
+else:
+    def is_stationary_segment(segment, threshold = 2e-4):
+        return False
 
 
 def to_tensors(df: pd.DataFrame) -> Pair[torch.Tensor]:
