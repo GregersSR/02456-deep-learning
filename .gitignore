@@ -5,6 +5,8 @@ processed_data*/
 checkpoints*/
 port_locodes.csv
 .DS_Store
+results_filtered*
+results_unfiltered*
 
 # ====================
 
