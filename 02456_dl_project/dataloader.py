@@ -9,10 +9,11 @@ from torch.utils.data import Dataset
 import pyarrow.parquet as pq
 from paths import SPLITS_DIR
 from sklearn.preprocessing import StandardScaler
+import joblib
 
 LOOKBACK = 30
 N_PREDICT = 10
-FILTER_STATIONARY = False
+FILTER_STATIONARY = True
 
 A = TypeVar('A')
 Pair = tuple[A, A]
@@ -125,8 +126,10 @@ def _load_raw(split_name: str) -> Pair[Tensor]:
 
 
 # public API for use in other files
-def load_train() -> tuple[AisDataset, StandardScaler]:
+def load_train(filteringstationary: bool) -> tuple[AisDataset, StandardScaler]:
     print("Loading TRAIN...")
+    global FILTER_STATIONARY
+    FILTER_STATIONARY = filteringstationary
     x_train, y_train = _load_raw("train")
 
     # fit scaler on LAT/LON only
@@ -139,18 +142,18 @@ def load_train() -> tuple[AisDataset, StandardScaler]:
     ds = AisDataset(x_train, y_train, scaler=scaler)
     return ds, scaler
 
-def load_val(scaler: StandardScaler) -> AisDataset:
+def load_val(filteringstationary: bool, scaler: StandardScaler) -> AisDataset:
     print("Loading VAL...")
+    global FILTER_STATIONARY
+    FILTER_STATIONARY = filteringstationary
     x_val, y_val = _load_raw("val")
     return AisDataset(x_val, y_val, scaler=scaler)
 
 
-# just for testing
 if __name__ == '__main__':
-    train_ds, scaler = load_train()
-    val_ds = load_val(scaler)
-    print("Train windows:", len(train_ds))
-    print("Val windows:", len(val_ds))
-    x_batch, y_batch = train_ds[0]                                                          
-    print("x_batch shape:", x_batch.shape)                                                  
-    print("y_batch shape:", y_batch.shape) 
+    # save scaler for later use
+    train_ds, scaler = load_train(filteringstationary=True)
+    joblib.dump(scaler, "scaler_filtered.save")
+    train_ds, scaler = load_train(filteringstationary=False)
+    joblib.dump(scaler, "scaler_unfiltered.save")
+
