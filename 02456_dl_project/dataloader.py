@@ -13,7 +13,6 @@ import joblib
 
 LOOKBACK = 30
 N_PREDICT = 10
-FILTER_STATIONARY = True
 
 A = TypeVar('A')
 Pair = tuple[A, A]
@@ -37,24 +36,20 @@ def sliding_windows(segment: np.array) -> Generator[Pair[np.array]]:
         y_end = y_start + N_PREDICT
         yield segment[x_start:y_start], segment[y_start:y_end]
 
-if FILTER_STATIONARY:
-    def is_stationary_segment(segment, threshold = 2e-4):
-        """Detects whether a vessel is moving or not.
-        threshold: lat and lon movement below threshold is considered stationary
-        """
-        lat = segment[:, 0]
-        lon = segment[:, 1]
+def is_stationary_segment(segment, threshold = 2e-4):
+    """Detects whether a vessel is moving or not.
+    threshold: lat and lon movement below threshold is considered stationary
+    """
+    lat = segment[:, 0]
+    lon = segment[:, 1]
 
-        lat_diff = lat.max() - lat.min()
-        lon_diff = lon.max() - lon.min()
+    lat_diff = lat.max() - lat.min()
+    lon_diff = lon.max() - lon.min()
 
-        return lat_diff < threshold and lon_diff < threshold
-else:
-    def is_stationary_segment(segment, threshold = 2e-4):
-        return False
+    return lat_diff < threshold and lon_diff < threshold
 
 
-def to_tensors(df: pd.DataFrame) -> Pair[torch.Tensor]:
+def to_tensors(df: pd.DataFrame, filter_stationary: bool) -> Pair[torch.Tensor]:
     """Extracts features from a DataFrame
     
     The DataFrame should have a row for each Segment (as produced by preprocessing.py).
@@ -74,7 +69,7 @@ def to_tensors(df: pd.DataFrame) -> Pair[torch.Tensor]:
     xs = []
     ys = []
     for x, y in windows:
-        if not is_stationary_segment(x) and not is_stationary_segment(y):        
+        if not filter_stationary or (not is_stationary_segment(x) and not is_stationary_segment(y)):
             xs.append(torch.Tensor(x))
             ys.append(torch.Tensor(y))
     xs = torch.stack(xs)
@@ -120,17 +115,15 @@ class AisDataset(Dataset):
 
 
 # raw tensor loaders (for fitting scaler)
-def _load_raw(split_name: str) -> Pair[Tensor]:
+def _load_raw(split_name: str, filter_stationary: bool) -> Pair[Tensor]:
     df = pq.read_table(SPLITS_DIR / f"{split_name}.parquet").to_pandas()
-    return to_tensors(df)
+    return to_tensors(df, filter_stationary)
 
 
 # public API for use in other files
-def load_train(filteringstationary: bool) -> tuple[AisDataset, StandardScaler]:
+def load_train(filter_stationary: bool = True) -> tuple[AisDataset, StandardScaler]:
     print("Loading TRAIN...")
-    global FILTER_STATIONARY
-    FILTER_STATIONARY = filteringstationary
-    x_train, y_train = _load_raw("train")
+    x_train, y_train = _load_raw("train", filter_stationary)
 
     # fit scaler on LAT/LON only
     scaler = StandardScaler()
@@ -142,18 +135,16 @@ def load_train(filteringstationary: bool) -> tuple[AisDataset, StandardScaler]:
     ds = AisDataset(x_train, y_train, scaler=scaler)
     return ds, scaler
 
-def load_val(filteringstationary: bool, scaler: StandardScaler) -> AisDataset:
+def load_val(scaler: StandardScaler, filter_stationary: bool = True) -> AisDataset:
     print("Loading VAL...")
-    global FILTER_STATIONARY
-    FILTER_STATIONARY = filteringstationary
-    x_val, y_val = _load_raw("val")
+    x_val, y_val = _load_raw("val", filter_stationary)
     return AisDataset(x_val, y_val, scaler=scaler)
 
 
 if __name__ == '__main__':
     # save scaler for later use
-    train_ds, scaler = load_train(filteringstationary=True)
+    train_ds, scaler = load_train(filter_stationary=True)
     joblib.dump(scaler, "scaler_filtered.save")
-    train_ds, scaler = load_train(filteringstationary=False)
+    train_ds, scaler = load_train(filter_stationary=False)
     joblib.dump(scaler, "scaler_unfiltered.save")
 
