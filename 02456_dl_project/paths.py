@@ -1,7 +1,7 @@
 from pathlib import Path
 
-HERE = Path(__file__).parent
-ROOT = HERE.parent
+PROJECT_DIR = Path(__file__).parent
+ROOT = PROJECT_DIR.parent
 RAW_DATA_DIR = ROOT / 'data'
 PROCESSED_DATA_DIR = ROOT / 'processed_data'
 SPLITS_DIR = ROOT / 'data_splits'
