@@ -17,6 +17,8 @@ from model_baseline import LinearModel
 from util import isonow
 from configurations import *
 
+FILTER_STATIONARY = False
+
 def train_linear_model(train: torch.Tensor, val: torch.Tensor):
     model = LinearModel.train(train)
     results = model.evaluate(train, val)
@@ -52,8 +54,8 @@ def remove_existing(configs):
     return filtered
 
 def load_data():
-    train, scaler = dataloader.load_train()
-    val = dataloader.load_val(scaler or train.scaler)
+    train, scaler = dataloader.load_train(filter_stationary=FILTER_STATIONARY)
+    val = dataloader.load_val(scaler or train.scaler, filter_stationary=FILTER_STATIONARY)
     return train, val, scaler
 
 def find_cfg(name):
