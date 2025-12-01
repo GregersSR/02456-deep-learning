@@ -1,5 +1,4 @@
-import torch
-
+import itertools
 
 transformer_configs = [
     {   
@@ -219,3 +218,42 @@ autoreg_configs = [
         },
     },
 ]
+
+def validate():
+    valid = True
+    mandatory_keys = ["name", "epochs", "batch_size", "model_kwargs", "optimizer_args"]
+    mandatory_transformer_args = ["d_model", "nhead", "num_layers", "dim_feedforward", "dropout"]
+    mandatory_lstm_args = ["hidden_size", "num_layers"]
+    for transformer_cfg in transformer_configs:
+        issues = []
+        for key in mandatory_keys:
+            if not key in transformer_cfg:
+                issues.append(f"{key} missing in config.")
+        for key in mandatory_transformer_args:
+            if key not in transformer_cfg['model_kwargs']:
+                issues.append(f"{key} missing in transformer kwargs.")
+        if issues:
+            valid = False
+            print("\n".join(issues))
+            print(transformer_cfg)
+    for lstm_config in itertools.chain(lstm_configs, autoreg_configs):
+        issues = []
+        for key in mandatory_keys:
+            if not key in lstm_config:
+                issues.append(f"{key} missing in config.")
+        for key in mandatory_lstm_args:
+            if key not in lstm_config['model_kwargs']:
+                issues.append(f"{key} missing in lstm kwargs.")
+        if issues:
+            valid = False
+            print("\n".join(issues))
+            print(lstm_config)
+    if valid:
+        print("All okay.")
+        return 0
+    else:
+        return 1
+    
+if __name__ == '__main__':
+    exit(validate())
+    

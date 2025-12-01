@@ -45,60 +45,6 @@ CHECKPOINTS_DIR.mkdir(parents=True, exist_ok=True)
 def checkpoint_model_path(model_name: str) -> Path:
     return (CHECKPOINTS_DIR / f"{model_name}_best.pt").relative_to(ROOT)
 
-def inverse_transform_batch(arr: torch.Tensor, scaler: StandardScaler) -> torch.Tensor:
-    """Inverse-transform a batch tensor using a fitted sklearn scaler.
-
-    arr: torch.Tensor shape [N, seq_len, n_features]
-    scaler: fitted scaler with `inverse_transform` (e.g., StandardScaler)
-
-    Returns numpy array with same shape.
-    """
-    np_arr = arr.detach().cpu().numpy()
-    N, seq_len, n_features = np_arr.shape
-    flat = np_arr.reshape(N * seq_len, n_features)
-    inv = scaler.inverse_transform(flat)
-    return inv.reshape(N, seq_len, n_features)
-
-
-def step_scheduler(scheduler: Optional[Any], metric: float):
-    """Step the scheduler if provided.
-
-    Tries to call scheduler.step(metric), if that fails tries scheduler.step(),
-    otherwise does nothing.
-    """
-    if scheduler is not None:
-        try:
-            scheduler.step(metric)
-        except Exception:
-            try:
-                scheduler.step()
-            except Exception:
-                pass
-
-
-def batch_metrics(preds: torch.Tensor, targets: torch.Tensor, scaler=None) -> Tuple[float, float]:
-    """Compute MSE and MAE for a batch.
-
-    Returns (mse, mae) where mse is mean squared error per sample (averaged
-    over elements/features/time) and mae is mean absolute error.
-    If `scaler` is provided it will inverse-transform preds/targets before
-    computing metrics (useful for reporting lat/lon errors).
-    """
-    if scaler is not None:
-        p = inverse_transform_batch(preds, scaler)
-        t = inverse_transform_batch(targets, scaler)
-    else:
-        p = preds.detach().cpu().numpy()
-        t = targets.detach().cpu().numpy()
-
-    # flatten per-sample, then compute per-sample MSE/MAE and average
-    B = p.shape[0]
-    per_sample_mse = ((p - t) ** 2).reshape(B, -1).mean(axis=1)
-    per_sample_mae = (abs(p - t)).reshape(B, -1).mean(axis=1)
-
-    # average across samples
-    return float(per_sample_mse.mean()), float(per_sample_mae.mean())
-
 
 def train_model(
     model_name: str,
@@ -115,6 +61,7 @@ def train_model(
     history keys: train_mse, train_rmse, train_mae, val_mse, val_rmse, val_mae
     """
     device = determine_device()
+    print(f"Using device: {device}")
 
     model = model.to(device)
 
@@ -224,23 +171,14 @@ def train_model(
     return history
 
 
-def train_with_config(model_fn, config, train=None, val=None):
+def train_with_config(model_fn, config, train, val):
     name = config['name']
     model_kwargs = config['model_kwargs']
     epochs = config['epochs']
     batch_size = config['batch_size']
-    optimizer_fn = config.get('optimizer', torch.optim.AdamW)
-    optimizer_args = config.get('optimizer_args', {
-        'lr': 1e-3,
-        'weight_decay': 1e-4,
-    })
+    optimizer_args = config['optimizer_args']
     model = model_fn(**model_kwargs)
-    optimizer = optimizer_fn(model.parameters(), **optimizer_args)
-
-    if not train:
-        train, scaler = dataloader.load_train()
-    if not val:
-        val = dataloader.load_val(scaler or train.scaler)
+    optimizer = torch.optim.AdamW(model.parameters(), **optimizer_args)
     train_loader = DataLoader(train, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val, batch_size=batch_size, shuffle=False)
 
@@ -249,7 +187,7 @@ def train_with_config(model_fn, config, train=None, val=None):
     print("Model args:", model_kwargs)
     print("Epochs :", epochs)
     print("Batch size:", batch_size)
-    print("Optimizer: {}, args: {}".format(optimizer_fn.__name__, optimizer_args))
+    print("AdamW optimizer args: {}".format(optimizer_args))
 
     history = train_model(
         name,
