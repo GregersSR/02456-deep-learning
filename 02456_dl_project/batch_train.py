@@ -90,9 +90,9 @@ def train_all():
     now = isonow()
     train, val, scaler = load_data()
     torch.save(scaler, paths.CHECKPOINTS_DIR / f"data_scaler-{now}.pt")
-    lstm_results = training.train_all(LSTMModel, remove_existing(lstm_configs), defaults=lstm_defaults, train=train, val=val)
-    autoreg_results = training.train_all(Seq2SeqLSTM, remove_existing(autoreg_configs), defaults=autoreg_defaults, train=train, val=val)
-    transformer_results = training.train_all(TrajectoryTransformer30to10, remove_existing(transformer_configs), defaults=transformer_defaults, train=train, val=val)
+    lstm_results = training.train_all(LSTMModel, remove_existing(lstm_configs), train=train, val=val)
+    autoreg_results = training.train_all(Seq2SeqLSTM, remove_existing(autoreg_configs), train=train, val=val)
+    transformer_results = training.train_all(TrajectoryTransformer30to10, remove_existing(transformer_configs), train=train, val=val)
     baseline_results = train_linear_model(train, val)
     all_results = {**lstm_results, **autoreg_results, **transformer_results, **baseline_results}
     torch.save(all_results, paths.CHECKPOINTS_DIR / f"all_models_results-{now}.pt")
