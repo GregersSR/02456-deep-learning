@@ -103,13 +103,13 @@ transformer_seq2seq_configs = [
     {
         "name": "mini_seq2seq_trans",
         "epochs": 1,
-        "batch_size": 512,
+        "batch_size": 128,
         "model_kwargs": {
             "d_model": 8,
             "nhead": 4,
             "num_enc_layers": 1,
             "num_dec_layers": 1,
-            "dim_feedforward": 1,
+            "dim_feedforward": 2,
             "dropout": 0.1,
         },
         "optimizer_args": {
