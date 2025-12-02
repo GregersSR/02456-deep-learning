@@ -47,7 +47,7 @@ def to_tensors(df: pd.DataFrame) -> Pair[torch.Tensor]:
     The first dimension indexes over the sliding windows, the second over the sequence of 30 data points and the third over the 4 features of each data point (LAT, LONG, SOG, COG).
     """
     # sort by ts so we can easily compute the positional encoding
-    df.sort_values(by='Timestamp')
+    df.sort_values(by='Timestamp', inplace=True)
     df.drop(columns=['Timestamp', 'MMSI'], inplace=True)
     segments = df.groupby('segment_id').apply(pd.DataFrame.to_numpy, include_groups=False).to_numpy()
     # Now we have a Numpy array of length (n_segments) in the first layer, (segment length) in the second layer
@@ -121,7 +121,7 @@ def load_train() -> tuple[AisDataset, StandardScaler]:
     x_train, y_train = _load_raw("train")
 
     # fit scaler on LAT/LON/SOG only
-    flat_train = x_train.numpy().reshape(-1, 3)
+    flat_train = x_train.numpy().reshape(-1, 4)
     scaler = StandardScaler()
     scaler.fit(flat_train[:, :2])
 

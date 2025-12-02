@@ -17,6 +17,8 @@ from model_baseline import LinearModel
 from util import isonow
 from configurations import *
 
+FILTER_STATIONARY = False
+
 def train_linear_model(train: torch.Tensor, val: torch.Tensor):
     model = LinearModel.train(train)
     results = model.evaluate(train, val)
@@ -52,8 +54,8 @@ def remove_existing(configs):
     return filtered
 
 def load_data():
-    train, scaler = dataloader.load_train()
-    val = dataloader.load_val(scaler or train.scaler)
+    train, scaler = dataloader.load_train(filter_stationary=FILTER_STATIONARY)
+    val = dataloader.load_val(scaler or train.scaler, filter_stationary=FILTER_STATIONARY)
     return train, val, scaler
 
 def find_cfg(name):
@@ -90,9 +92,9 @@ def train_all():
     now = isonow()
     train, val, scaler = load_data()
     torch.save(scaler, paths.CHECKPOINTS_DIR / f"data_scaler-{now}.pt")
-    lstm_results = training.train_all(LSTMModel, remove_existing(lstm_configs), defaults=lstm_defaults, train=train, val=val)
-    autoreg_results = training.train_all(Seq2SeqLSTM, remove_existing(autoreg_configs), defaults=autoreg_defaults, train=train, val=val)
-    transformer_results = training.train_all(TrajectoryTransformer30to10, remove_existing(transformer_configs), defaults=transformer_defaults, train=train, val=val)
+    lstm_results = training.train_all(LSTMModel, remove_existing(lstm_configs), train=train, val=val)
+    autoreg_results = training.train_all(Seq2SeqLSTM, remove_existing(autoreg_configs), train=train, val=val)
+    transformer_results = training.train_all(TrajectoryTransformer30to10, remove_existing(transformer_configs), train=train, val=val)
     baseline_results = train_linear_model(train, val)
     all_results = {**lstm_results, **autoreg_results, **transformer_results, **baseline_results}
     torch.save(all_results, paths.CHECKPOINTS_DIR / f"all_models_results-{now}.pt")

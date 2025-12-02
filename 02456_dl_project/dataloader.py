@@ -121,12 +121,11 @@ def _load_raw(split_name: str, filter_stationary: bool) -> Pair[Tensor]:
 
 
 # public API for use in other files
-def load_train(filter_stationary: bool = True) -> tuple[AisDataset, StandardScaler]:
+def load_train(filter_stationary: bool) -> tuple[AisDataset, StandardScaler]:
     print("Loading TRAIN...")
     x_train, y_train = _load_raw("train", filter_stationary)
 
     # fit scaler on LAT/LON only
-    scaler = StandardScaler()
     N, seq_len, n_features = x_train.shape
     flat_train = x_train.reshape(N * seq_len, n_features)
     scaler = StandardScaler()
@@ -135,7 +134,7 @@ def load_train(filter_stationary: bool = True) -> tuple[AisDataset, StandardScal
     ds = AisDataset(x_train, y_train, scaler=scaler)
     return ds, scaler
 
-def load_val(scaler: StandardScaler, filter_stationary: bool = True) -> AisDataset:
+def load_val(scaler: StandardScaler, filter_stationary: bool) -> AisDataset:
     print("Loading VAL...")
     x_val, y_val = _load_raw("val", filter_stationary)
     return AisDataset(x_val, y_val, scaler=scaler)

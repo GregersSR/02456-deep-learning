@@ -45,60 +45,6 @@ CHECKPOINTS_DIR.mkdir(parents=True, exist_ok=True)
 def checkpoint_model_path(model_name: str) -> Path:
     return (CHECKPOINTS_DIR / f"{model_name}_best.pt").relative_to(ROOT)
 
-def inverse_transform_batch(arr: torch.Tensor, scaler: StandardScaler) -> torch.Tensor:
-    """Inverse-transform a batch tensor using a fitted sklearn scaler.
-
-    arr: torch.Tensor shape [N, seq_len, n_features]
-    scaler: fitted scaler with `inverse_transform` (e.g., StandardScaler)
-
-    Returns numpy array with same shape.
-    """
-    np_arr = arr.detach().cpu().numpy()
-    N, seq_len, n_features = np_arr.shape
-    flat = np_arr.reshape(N * seq_len, n_features)
-    inv = scaler.inverse_transform(flat)
-    return inv.reshape(N, seq_len, n_features)
-
-
-def step_scheduler(scheduler: Optional[Any], metric: float):
-    """Step the scheduler if provided.
-
-    Tries to call scheduler.step(metric), if that fails tries scheduler.step(),
-    otherwise does nothing.
-    """
-    if scheduler is not None:
-        try:
-            scheduler.step(metric)
-        except Exception:
-            try:
-                scheduler.step()
-            except Exception:
-                pass
-
-
-def batch_metrics(preds: torch.Tensor, targets: torch.Tensor, scaler=None) -> Tuple[float, float]:
-    """Compute MSE and MAE for a batch.
-
-    Returns (mse, mae) where mse is mean squared error per sample (averaged
-    over elements/features/time) and mae is mean absolute error.
-    If `scaler` is provided it will inverse-transform preds/targets before
-    computing metrics (useful for reporting lat/lon errors).
-    """
-    if scaler is not None:
-        p = inverse_transform_batch(preds, scaler)
-        t = inverse_transform_batch(targets, scaler)
-    else:
-        p = preds.detach().cpu().numpy()
-        t = targets.detach().cpu().numpy()
-
-    # flatten per-sample, then compute per-sample MSE/MAE and average
-    B = p.shape[0]
-    per_sample_mse = ((p - t) ** 2).reshape(B, -1).mean(axis=1)
-    per_sample_mae = (abs(p - t)).reshape(B, -1).mean(axis=1)
-
-    # average across samples
-    return float(per_sample_mse.mean()), float(per_sample_mae.mean())
-
 
 def train_model(
     model_name: str,
@@ -106,9 +52,7 @@ def train_model(
     train_loader: DataLoader,
     val_loader: DataLoader,
     num_epochs: int,
-    criterion: torch.nn.Module,
     optimizer: torch.optim.Optimizer,
-    scheduler: Optional[Any] = None,
 ) -> Tuple[Dict[str, list], str]:
     """Train `model` using train_loader and val_loader.
 
@@ -117,10 +61,12 @@ def train_model(
     history keys: train_mse, train_rmse, train_mae, val_mse, val_rmse, val_mae
     """
     device = determine_device()
+    print(f"Using device: {device}")
 
     model = model.to(device)
 
     best_val_rmse = float("inf")
+    criterion = torch.nn.MSELoss()
     best_ckpt_path = checkpoint_model_path(model_name)
     epoch_since_best = 0
 
@@ -139,7 +85,7 @@ def train_model(
         # TRAIN
         model.train()
         epoch_train_loss = 0.0
-        train_se_acc = 0.0
+        train_mse_acc = 0.0
         train_ae_acc = 0.0
         n_train = 0
 
@@ -157,16 +103,16 @@ def train_model(
             bs = X.size(0)
             # Calculate squared error and absolute error for the batch
             batch_loss = loss.item()
-            se_batch = torch.square(preds - Y).sum().item()
-            ae_batch = torch.abs(preds - Y).sum().item()
+            mse_batch = torch.square(preds - Y).mean().item()
+            mae_batch = torch.abs(preds - Y).mean().item()
 
-            epoch_train_loss += batch_loss
-            train_se_acc += se_batch
-            train_ae_acc += ae_batch
+            epoch_train_loss += batch_loss * bs
+            train_mse_acc += mse_batch * bs
+            train_ae_acc += mae_batch * bs
             n_train += bs
 
         train_loss = epoch_train_loss / n_train
-        train_mse = train_se_acc / n_train
+        train_mse = train_mse_acc / n_train
         train_rmse = math.sqrt(train_mse)
         train_mae = train_ae_acc / n_train
 
@@ -187,12 +133,12 @@ def train_model(
 
                 bs = Xv.size(0)
                 batch_loss = loss_v.item()
-                se_batch = torch.square(preds_v - Yv).sum().item()
-                ae_batch = torch.abs(preds_v - Yv).sum().item()
+                mse_batch = torch.square(preds_v - Yv).mean().item()
+                mae_batch = torch.abs(preds_v - Yv).mean().item()
 
-                epoch_val_loss += batch_loss
-                val_se_acc += se_batch
-                val_ae_acc += ae_batch
+                epoch_val_loss += batch_loss * bs
+                val_se_acc += mse_batch * bs
+                val_ae_acc += mae_batch * bs
                 n_val += bs
 
         val_loss = epoch_val_loss / n_val
@@ -207,8 +153,6 @@ def train_model(
         history["val_mse"].append(val_mse)
         history["val_rmse"].append(val_rmse)
         history["val_mae"].append(val_mae)
-
-        step_scheduler(scheduler, val_rmse)
 
         # save best model
         if val_rmse < best_val_rmse:
@@ -227,24 +171,14 @@ def train_model(
     return history
 
 
-def train_with_config(model_fn, config, train=None, val=None):
+def train_with_config(model_fn, config, train, val):
     name = config['name']
     model_kwargs = config['model_kwargs']
-    epochs = config.get('epochs', 20)
-    batch_size = config.get('batch_size', 512)
-    criterion = config.get('criterion', torch.nn.MSELoss(reduction='sum'))
-    optimizer_fn = config.get('optimizer', torch.optim.AdamW)
-    optimizer_args = config.get('optimizer_args', {
-        'lr': 1e-3,
-        'weight_decay': 1e-4,
-    })
+    epochs = config['epochs']
+    batch_size = config['batch_size']
+    optimizer_args = config['optimizer_args']
     model = model_fn(**model_kwargs)
-    optimizer = optimizer_fn(model.parameters(), **optimizer_args)
-
-    if not train:
-        train, scaler = dataloader.load_train()
-    if not val:
-        val = dataloader.load_val(scaler or train.scaler)
+    optimizer = torch.optim.AdamW(model.parameters(), **optimizer_args)
     train_loader = DataLoader(train, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val, batch_size=batch_size, shuffle=False)
 
@@ -253,8 +187,7 @@ def train_with_config(model_fn, config, train=None, val=None):
     print("Model args:", model_kwargs)
     print("Epochs :", epochs)
     print("Batch size:", batch_size)
-    print("Criterion:", criterion)
-    print("Optimizer: {}, args: {}".format(optimizer_fn.__name__, optimizer_args))
+    print("AdamW optimizer args: {}".format(optimizer_args))
 
     history = train_model(
         name,
@@ -262,19 +195,17 @@ def train_with_config(model_fn, config, train=None, val=None):
         train_loader,
         val_loader,
         num_epochs=epochs,
-        criterion=criterion,
         optimizer=optimizer,
     )
     print(f"Finished training model: {name} at {isonow()}\n")
     return model, history
 
-def train_all(model_fn, configs, train=None, val=None, defaults={}):
+def train_all(model_fn, configs, train=None, val=None):
     results = {}
     for config in configs:
-        merged_config = defaults | config
         model, history = train_with_config(
             model_fn,
-            merged_config,
+            config,
             train=train,
             val=val,
         )

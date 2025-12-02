@@ -86,12 +86,7 @@ def fetch_month(year: int, month: int) -> Generator[pd.DataFrame]:
 
 def main():
     year = 2024
-    parallel = False
-    if parallel:
-        with multiprocessing.Pool(os.cpu_count() - 2) as pool:
-            month_dfs = pool.map(functools.partial(fetch_month, year), range(1, 13))
-    else:
-        month_dfs = (fetch_month(year, month) for month in range(1, 13))
+    month_dfs = (fetch_month(year, month) for month in range(1, 13))
     debug("Starting full concat")
     df = pd.concat(itertools.chain.from_iterable(month_dfs))
     del month_dfs
