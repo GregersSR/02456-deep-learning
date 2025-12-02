@@ -99,13 +99,64 @@ transformer_configs = [
     },
 ]
 
-transformer_encdec_configs = [
+transformer_seq2seq_configs = [
     {
-        "name": "deep_encdec_transformer",
-        "epochs": 200,
+        "name": "mini_seq2seq_trans",
+        "epochs": 1,
+        "batch_size": 512,
+        "model_kwargs": {
+            "d_model": 8,
+            "nhead": 4,
+            "num_enc_layers": 1,
+            "num_dec_layers": 1,
+            "dim_feedforward": 1,
+            "dropout": 0.1,
+        },
+        "optimizer_args": {
+            "lr": 1e-3,
+            "weight_decay": 1e-4,
+        },
+    },
+    {
+        "name": "small_seq2seq_trans",
+        "epochs": 50,
+        "batch_size": 128,
+        "model_kwargs": {
+            "d_model": 16,
+            "nhead": 4,
+            "num_enc_layers": 3,
+            "num_dec_layers": 3,
+            "dim_feedforward": 256,
+            "dropout": 0.1,
+        },
+        "optimizer_args": {
+            "lr": 5e-4,
+            "weight_decay": 1e-4,
+        },
+    },
+    {
+        "name": "medium_seq2seq_trans",
+        "epochs": 100,
         "batch_size": 128,
         "model_kwargs": {
             "d_model": 32,
+            "nhead": 8,
+            "num_enc_layers": 4,
+            "num_dec_layers": 4,
+            "dim_feedforward": 512,
+            "dropout": 0.1,
+        },
+        "optimizer_args": {
+            "lr": 5e-4,
+            "weight_decay": 1e-4,
+        },
+    },
+    {
+        "name": "deep_seq2seq_trans",
+        "epochs": 200,
+        "batch_size": 128,
+        "model_kwargs": {
+            "d_model": 64,
             "nhead": 8,
             "num_enc_layers": 5,
             "num_dec_layers": 5,
@@ -285,31 +336,44 @@ def validate():
     valid = True
     mandatory_keys = ["name", "epochs", "batch_size", "model_kwargs", "optimizer_args"]
     mandatory_transformer_args = ["d_model", "nhead", "num_layers", "dim_feedforward", "dropout"]
+    mandatory_seq2seq_trans_args = ["d_model", "nhead", "num_enc_layers", "num_dec_layers", "dim_feedforward", "dropout"]
     mandatory_lstm_args = ["hidden_size", "num_layers"]
-    for transformer_cfg in transformer_configs:
+    for cfg in transformer_configs:
         issues = []
         for key in mandatory_keys:
-            if not key in transformer_cfg:
+            if not key in cfg:
                 issues.append(f"{key} missing in config.")
         for key in mandatory_transformer_args:
-            if key not in transformer_cfg['model_kwargs']:
+            if key not in cfg['model_kwargs']:
                 issues.append(f"{key} missing in transformer kwargs.")
         if issues:
             valid = False
             print("\n".join(issues))
-            print(transformer_cfg)
-    for lstm_config in itertools.chain(lstm_configs, autoreg_configs):
+            print(cfg)
+    for cfg in transformer_seq2seq_configs:
         issues = []
         for key in mandatory_keys:
-            if not key in lstm_config:
+            if not key in cfg:
+                issues.append(f"{key} missing in config.")
+        for key in mandatory_seq2seq_trans_args:
+            if key not in cfg['model_kwargs']:
+                issues.append(f"{key} missing in transformer kwargs.")
+        if issues:
+            valid = False
+            print("\n".join(issues))
+            print(cfg)
+    for config in itertools.chain(lstm_configs, autoreg_configs):
+        issues = []
+        for key in mandatory_keys:
+            if not key in config:
                 issues.append(f"{key} missing in config.")
         for key in mandatory_lstm_args:
-            if key not in lstm_config['model_kwargs']:
+            if key not in config['model_kwargs']:
                 issues.append(f"{key} missing in lstm kwargs.")
         if issues:
             valid = False
             print("\n".join(issues))
-            print(lstm_config)
+            print(config)
     if valid:
         print("All okay.")
         return 0

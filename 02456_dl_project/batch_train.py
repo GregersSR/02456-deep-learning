@@ -6,6 +6,7 @@ Results are saved to `checkpoints/` directory.
 
 import json
 import sys
+from model_seq2seq_transformer import Seq2SeqTransformer
 import torch
 import training
 import dataloader
@@ -61,6 +62,8 @@ def load_data():
 def find_cfg(name):
     if "autoreg" in name:
         return Seq2SeqLSTM, [cfg for cfg in autoreg_configs if cfg['name'] == name][0]
+    elif "seq2seq_trans" in name:
+        return Seq2SeqTransformer, [cfg for cfg in transformer_seq2seq_configs if cfg['name'] == name][0]
     elif "transformer" in name:
         return TrajectoryTransformer30to10, [cfg for cfg in transformer_configs if cfg['name'] == name][0]
     elif name == "linear_model":

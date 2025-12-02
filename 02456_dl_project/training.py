@@ -18,6 +18,7 @@ history, best_path = training.train_model(
 )
 
 """
+import inspect
 from pathlib import Path
 from typing import Optional, Dict, Any, Tuple
 import math
@@ -46,6 +47,11 @@ def checkpoint_model_path(model_name: str) -> Path:
     return (CHECKPOINTS_DIR / f"{model_name}_best.pt").relative_to(ROOT)
 
 
+def takes_arg(f, arg: str):
+    sig = inspect.signature(f)
+    return arg in sig.parameters
+
+
 def train_model(
     model_name: str,
     model: torch.nn.Module,
@@ -62,6 +68,8 @@ def train_model(
     """
     device = determine_device()
     print(f"Using device: {device}")
+
+    pass_tgt = takes_arg(model.forward, "tgt")
 
     model = model.to(device)
 
@@ -94,7 +102,10 @@ def train_model(
             Y = Y.to(device)
 
             optimizer.zero_grad()
-            preds = model(X)
+            if pass_tgt:
+                preds = model(X, Y)
+            else:
+                preds = model(X)
 
             loss = criterion(preds, Y)
             loss.backward()
