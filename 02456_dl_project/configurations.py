@@ -81,6 +81,42 @@ transformer_configs = [
             "weight_decay": 1e-4,
         },
     },
+    {
+        "name": "deeper_transformer_3",
+        "epochs": 200,
+        "batch_size": 128,
+        "model_kwargs": {
+            "d_model": 32,
+            "nhead": 8,
+            "num_layers": 8,
+            "dim_feedforward": 1024,
+            "dropout": 0.1,
+        },
+        "optimizer_args": {
+            "lr": 5e-4,
+            "weight_decay": 1e-4,
+        },
+    },
+]
+
+transformer_encdec_configs = [
+    {
+        "name": "deep_encdec_transformer",
+        "epochs": 200,
+        "batch_size": 128,
+        "model_kwargs": {
+            "d_model": 32,
+            "nhead": 8,
+            "num_enc_layers": 5,
+            "num_dec_layers": 5,
+            "dim_feedforward": 1024,
+            "dropout": 0.1,
+        },
+        "optimizer_args": {
+            "lr": 5e-4,
+            "weight_decay": 1e-4,
+        },
+    },
 ]
 
 lstm_configs = [
@@ -149,6 +185,19 @@ lstm_configs = [
             "weight_decay": 1e-2,
         },
     },
+    {
+        "name": "even_deeper_lstm",
+        "epochs": 200,
+        "batch_size": 128,
+        "model_kwargs": {
+            "hidden_size": 1024,
+            "num_layers": 8,
+        },
+        "optimizer_args": {
+            "lr": 5e-4,
+            "weight_decay": 1e-4,
+        },
+    },
 ]
 
 autoreg_configs = [
@@ -215,6 +264,19 @@ autoreg_configs = [
         "optimizer_args": {
             "lr": 5e-4,
             "weight_decay": 1e-2,
+        },
+    },
+    {
+        "name": "even_deeper_autoreg_lstm",
+        "epochs": 200,
+        "batch_size": 128,
+        "model_kwargs": {
+            "hidden_size": 1024,
+            "num_layers": 8,
+        },
+        "optimizer_args": {
+            "lr": 5e-4,
+            "weight_decay": 1e-4,
         },
     },
 ]
