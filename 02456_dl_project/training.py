@@ -44,7 +44,7 @@ def determine_device():
 
 CHECKPOINTS_DIR.mkdir(parents=True, exist_ok=True)
 def checkpoint_model_path(model_name: str) -> Path:
-    return (CHECKPOINTS_DIR / f"{model_name}_best.pt").relative_to(ROOT)
+    return (CHECKPOINTS_DIR / f"{model_name}_best.pt")
 
 
 def takes_arg(f, arg: str):
