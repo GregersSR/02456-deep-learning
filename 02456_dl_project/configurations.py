@@ -103,13 +103,13 @@ transformer_seq2seq_configs = [
     {
         "name": "mini_seq2seq_trans",
         "epochs": 1,
-        "batch_size": 128,
+        "batch_size": 512,
         "model_kwargs": {
             "d_model": 8,
             "nhead": 4,
             "num_enc_layers": 1,
             "num_dec_layers": 1,
-            "dim_feedforward": 2,
+            "dim_feedforward": 1,
             "dropout": 0.1,
         },
         "optimizer_args": {
@@ -153,7 +153,7 @@ transformer_seq2seq_configs = [
     },
     {
         "name": "deep_seq2seq_trans",
-        "epochs": 200,
+        "epochs": 100,
         "batch_size": 128,
         "model_kwargs": {
             "d_model": 64,
@@ -162,6 +162,40 @@ transformer_seq2seq_configs = [
             "num_dec_layers": 5,
             "dim_feedforward": 1024,
             "dropout": 0.1,
+        },
+        "optimizer_args": {
+            "lr": 5e-4,
+            "weight_decay": 1e-4,
+        },
+    },
+    {
+        "name": "twolayer_seq2seq_trans",
+        "epochs": 100,
+        "batch_size": 128,
+        "model_kwargs": {
+            "d_model": 32,
+            "nhead": 4,
+            "num_enc_layers": 2,
+            "num_dec_layers": 2,
+            "dim_feedforward": 256,
+            "dropout": 0.3,
+        },
+        "optimizer_args": {
+            "lr": 5e-4,
+            "weight_decay": 1e-4,
+        },
+    },
+    {
+        "name": "dropoutincrease_seq2seq_trans",
+        "epochs": 100,
+        "batch_size": 128,
+        "model_kwargs": {
+            "d_model": 64,
+            "nhead": 8,
+            "num_enc_layers": 3,
+            "num_dec_layers": 3,
+            "dim_feedforward": 256,
+            "dropout": 0.4,
         },
         "optimizer_args": {
             "lr": 5e-4,
