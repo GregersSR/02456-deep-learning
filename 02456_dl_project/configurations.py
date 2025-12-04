@@ -1,4 +1,9 @@
 import itertools
+from model_lstm import LSTMModel
+from model_autoregressive import Seq2SeqLSTM
+from transformer_model import TrajectoryTransformer30to10
+from model_baseline import LinearModel
+from model_seq2seq_transformer import Seq2SeqTransformer
 
 transformer_configs = [
     {   
@@ -365,6 +370,18 @@ autoreg_configs = [
         },
     },
 ]
+
+def find_cfg(name):
+    if "autoreg" in name:
+        return Seq2SeqLSTM, [cfg for cfg in autoreg_configs if cfg['name'] == name][0]
+    elif "seq2seq_trans" in name:
+        return Seq2SeqTransformer, [cfg for cfg in transformer_seq2seq_configs if cfg['name'] == name][0]
+    elif "transformer" in name:
+        return TrajectoryTransformer30to10, [cfg for cfg in transformer_configs if cfg['name'] == name][0]
+    elif name == "linear_model":
+        return LinearModel, {}
+    else:
+        return LSTMModel, [cfg for cfg in lstm_configs if cfg['name'] == name][0]
 
 def validate():
     valid = True

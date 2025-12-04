@@ -7,7 +7,7 @@ PROCESSED_DATA_DIR = ROOT / 'processed_data'
 SPLITS_DIR = ROOT / 'data_splits'
 CHECKPOINTS_DIR = ROOT / 'checkpoints'
 RESULTS_UNFILTERED_DIR = ROOT / 'results_unfiltered'
-RESULTS_FILTERED_DIR = ROOT / 'results_filtered'
+RESULTS_FILTERED_DIR = PROJECT_DIR / 'results_filtered/results_filtered'
 
 assert ROOT.is_dir()
 RAW_DATA_DIR.mkdir(exist_ok=True)
