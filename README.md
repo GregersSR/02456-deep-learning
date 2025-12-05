@@ -7,6 +7,11 @@ The objective of this project is to predict the short-term trajectories of vesse
 * **Prediction Window:** Predict the **next 50 minutes** (10 timesteps).
 * **Context Window:** Based on the **last 150 minutes** (30 data points) of a vessel's history
 
+## Reproducing results
+The "reproduce_results.ipynb" notebook in the "02456_dl_project" folder reproduces our main results.
+The best model on the validation set was the "Deep Autoregressive LSTM 2" model, whose performance on the validation and test sets we show in detail. We also show the performance of the best transformer model on the validation set.
+
+
 ## Data acquisition and preprocessing
 We use data from the entire year 2024.
 1. Running `02456_dl_project/download.py` fetches all the data, preprocesses it and stores it under `processed_data` in the repository root. It takes considerable time and resources (~8 hours, 30 Gb memory) to run this.
@@ -26,6 +31,4 @@ The three files `train.parquet`, `val.parquet` and `test.parquet` are the data s
 ## Training
 The core logic for executing model training is handled by `training.py`. The module contains shared utilities for efficiently training and evaluating **all models**. The central function, `train_model`, handles the entire training and validation loop. It automatically selects the optimal device (MPS, CUDA, or CPU), utilizes the AdamW optimizer, and calculates essential metrics (MSE, RMSE, MAE) for both training and validation sets. Crucially, it implements an early stopping mechanism based on validation RMSE, halting training after 20 epochs without improvement, and manages checkpointing by saving the model state with the lowest recorded validation RMSE.
 
-
-
-
+Training is initiated by `batch_train.py`, which takes as argument the name of a model as defined in `configurations.py`.
