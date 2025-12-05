@@ -5,7 +5,8 @@ from dataloader import load_val, load_test
 import joblib
 import numpy as np
 from tqdm import tqdm
-from paths import RESULTS_FILTERED_DIR, RESULTS_UNFILTERED_DIR
+import files
+from paths import PROJECT_DIR
 from configurations import find_cfg
 import pickle
 from plot_trajectory import plot_paths
@@ -13,8 +14,6 @@ from model_selection import haversine_np
 import json
 
 def select_model(json_file):
-    json_file = RESULTS_FILTERED_DIR / json_file
-
     if not json_file.exists():
         raise FileNotFoundError(f"No JSON file found in {json_file}")
     
@@ -27,7 +26,7 @@ def select_model(json_file):
 
 
 def load_scaler(filtered=True):
-    scaler_file = "scaler_filtered.save" if filtered else "scaler_unfiltered.save"
+    scaler_file = PROJECT_DIR / ("scaler_filtered.save" if filtered else "scaler_unfiltered.save")
     scaler = joblib.load(scaler_file)
     return scaler
 
@@ -53,14 +52,11 @@ def load_data(validation=True, filtered=True, batch_size = 512):
     return loader, scaler
 
 
-def best_model(best_model_name, best_model_data, device, filtered = True):
+def best_model(results, best_model_name, best_model_data, device):
     """
     Loads a trained model and set it to evaluation
     """
-
-    results_dir = RESULTS_FILTERED_DIR if filtered else RESULTS_UNFILTERED_DIR
-    best_model_path = training.checkpoint_model_path(best_model_name).name
-    full_best_model_path = results_dir / best_model_path
+    full_best_model_path = results[best_model_name]
 
     model_class, cfg = find_cfg(best_model_name)
 
@@ -170,10 +166,11 @@ if __name__ == "__main__":
     filtered = True
     # metrics = ["val_mse", "val_rmse", "val_mae"]
     # best_model_name, best_score, best_model_data = rank_models(RESULTS_FILTERED_DIR, metrics[0])
-    model_name, model_data = select_model("small_transformer_results-2025-11-27T10:12:31.json")
+    results = files.Results(filtered=True)
+    model_name, model_data = select_model(results["small_transformer"])
     # CHANGE validation to FALSE for the test
     loader, scaler = load_data(validation=True, filtered=filtered)
-    model = best_model(model_name, model_data, device=device, filtered=True)
+    model = best_model(results, model_name, model_data, device=device)
     results = compute_MSE_per_sample(model, loader, device, model_name)
 
     

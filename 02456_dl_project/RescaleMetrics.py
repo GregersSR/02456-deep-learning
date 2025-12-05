@@ -2,7 +2,7 @@ import json
 import pandas as pd 
 from pathlib import Path
 import math
-
+import paths
 
 
 def scale_json_history_and_save(old_path, new_path, divide_by=20):
@@ -53,10 +53,10 @@ def scale_json_history_and_save(old_path, new_path, divide_by=20):
 
 
 
-MODELS_TXT = Path('/Users/paulagattner/Downloads/02456-deep-learning-main-3/models.txt')
+MODELS_TXT = paths.ROOT / 'models.txt'
 
-OLD_DIR = Path('/Users/paulagattner/Downloads/02456-deep-learning-main-3/02456_dl_project/results_filtered/results_filtered')
-NEW_DIR = Path('/Users/paulagattner/Downloads/02456-deep-learning-main-3/02456_dl_project/results_filtered/results_filtered/newscaled')
+OLD_DIR = paths.RESULTS_FILTERED_DIR
+NEW_DIR = paths.RESULTS_FILTERED_DIR / 'newscaled'
 
 NEW_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -64,7 +64,7 @@ with open(MODELS_TXT, "r") as f:
     model_names = [line.strip() for line in f if line.strip()][:15]
 
 for model_name in model_names:
-    matches = list(OLD_DIR.glob(f"{model_name}_results-*.json"))
+    matches = list(OLD_DIR.glob(f"{model_name}_results*.json"))
 
     if not matches:
         print(f"No matching JSON found for model '{model_name}'")

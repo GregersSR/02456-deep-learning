@@ -28,7 +28,7 @@ class PositionalEncoding(nn.Module):
         return x + self.pe[:, :seq_len, :]
 
 
-class Seq2SeqTransformer(nn.Module):
+class Seq2SeqTransformerTf(nn.Module):
     def __init__(
         self,
         input_dim: int = 2,
@@ -79,7 +79,7 @@ class Seq2SeqTransformer(nn.Module):
         self.out = nn.Linear(d_model, output_dim)
 
 
-    def forward(self, src):
+    def forward(self, src, tgt=None):
 
         device = src.device
 
@@ -88,20 +88,41 @@ class Seq2SeqTransformer(nn.Module):
         src_emb = self.pos_enc(src_proj)      # [B, 30, d_model]
         enc = self.encoder(src_emb)            # [B, 30, d_model]
 
-        # Decoder - Autoregressive
-        generated = src[:,-1:,:] # start with the last input
+        # Decoder
 
-        for i in range(self.output_seq_len):
-            tgt_proj = self.input_proj(generated)
+        if self.training:
+            if tgt is None:
+                raise ValueError("Target sequence 'tgt' must be provided during training for teacher forcing")
+            if src.device != tgt.device:
+                raise ValueError("src and tgt tensors must be on the same device")
+            
+            # Teacher forcing - using ground truth
+            start_token = src[:,-1:,:]
+            shifted_tgt = torch.cat([start_token, tgt[:,:-1,:]], dim=1)
+            tgt_proj = self.input_proj(shifted_tgt)
             tgt_emb = self.pos_enc(tgt_proj)
+
+            # Autoregressive mask
             tgt_mask = nn.Transformer.generate_square_subsequent_mask(tgt_emb.size(1)).to(device)
 
             dec_out = self.decoder(tgt_emb, enc, tgt_mask=tgt_mask)
+            out = self.out(dec_out)
 
-            next_output = self.out(dec_out[:,-1:,:])
+        else:
+            generated = src[:,-1:,:]
 
-            generated = torch.cat([generated, next_output], dim=1)
+            for i in range(self.output_seq_len):
+                tgt_proj = self.input_proj(generated)
+                tgt_emb = self.pos_enc(tgt_proj)
+                tgt_mask = nn.Transformer.generate_square_subsequent_mask(tgt_emb.size(1)).to(device)
 
-        out = generated[:,1:,:]
+                dec_out = self.decoder(tgt_emb, enc, tgt_mask=tgt_mask)
+
+                next_output = self.out(dec_out[:,-1:,:])
+
+                generated = torch.cat([generated, next_output], dim=1)
+
+            out = generated[:,1:,:]
+
 
         return out

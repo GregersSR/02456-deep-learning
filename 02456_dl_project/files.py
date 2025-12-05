@@ -26,6 +26,11 @@ def fetch(remote_path: str, dest: Path):
         fp.write(resp.content)
     return resp.content
 
+def hash(content: bytes):
+    md = hashlib.sha256()
+    md.update(content)
+    return md.digest()
+
 def verify(expected_hash: bytes, content: bytes = None, file: Path = None) -> bool:
     if content is None and file is None:
         raise UserWarning("Either content or file must be given")
@@ -33,24 +38,29 @@ def verify(expected_hash: bytes, content: bytes = None, file: Path = None) -> bo
     if file:
         with file.open("rb") as fp:
             content = fp.read()
-    
-    md = hashlib.sha256()
-    md.update(content)
-    return expected_hash == md.digest()
+
+    return expected_hash == hash(content)
 
 def fetch_and_verify(fdef: FileDef):
     content = fetch(fdef.remote_path, fdef.path)
     attempts = 1
     while not verify(fdef.hash, content):
         if attempts >= MAX_FETCH_ATTEMPTS:
-            raise UserWarning(f"Could not fetch file {fdef.path.relative_to(paths.ROOT)}. Google Drive ID: {fdef.gdrive_id}.")
+            raise UserWarning(f"Could not fetch file {fdef.path.relative_to(paths.ROOT)}. URL: {URL.format(path=fdef.remote_path)}.")
         fetch(fdef.remote_path, fdef.path)
         attempts += 1
 
 
 def get_by_fdef(fdef: FileDef) -> Path:
     if fdef.path.exists():
-        return fdef.path
+        with fdef.path.open("rb") as fp:
+            content = fp.read()
+            hash_match = verify(fdef.hash, content)
+            if hash_match:
+                return fdef.path
+            else:
+                print(f"WARN: found file with wrong hash: {fdef.path}. Expected {fdef.hash.hex()}, got {hash(content).hex()}")
+                fdef.path.unlink()
     fetch_and_verify(fdef)
     return fdef.path
 
@@ -79,24 +89,24 @@ class Splits:
 
 results_filtered = {
     "linear_model":                     "9a8438e4e2bbe48191c9ae9293c8c679f32c645f488e363c90f5f32cca65fe9e",
-    "mini_transformer":                 "0f6bcdf35c251575b198b5c6c3bbbde614443b6baabe0e926392db4c7abc30e0",
-    "small_transformer":                "d53de82b2d94c3bbbcb789b1f724ef23206b7e4fb8dd796fdfd3827d989a6020",
-    "medium_transformer":               "e98e7d9cd4670b847f5c220e0a287e12fc5f43125cd4f126c110ecc5d5de9708",
-    "deeper_transformer_2":             "2de0edcf501266ae5c28d508aa5cc0de507091a698597b1fe508508c4ad18b1f",
-    "deeper_transformer":               "270bd5f04d85bc44ddb94b7788973c2e5fdd4bcf855801d4a82c50931175c172",
-    "mini_lstm":                        "46f41d9978b6200fb84ef93dbe6070259bbb84a10d0f900a6cd58b91f467a977",
-    "small_lstm":                       "bd2f97658084e8c22956772046de744e1a7c3c3c99b38e971fbc77e230868da1",
-    "medium_lstm":                      "a79b0c897502aa494fdb37f873d8ba9ba8d8663caa5833e25c89d279723dd128",
-    "deeper_lstm_2":                    "e3b06173e3717cea76c4fdfba0928481b5a6be409022e96be19201fbf3a55e69",
-    "deeper_lstm":                      "b30dfc4ff46eac2b09b6fbbed1ffa59adf2702190108c780870403f458f91958",
-    "mini_autoreg_lstm":                "593a81886c5565b0a3f7c39122db3a5195e7bfe12ad185bdfb974894d4eb3d8f",
-    "small_autoreg_lstm":               "9480335c95b091278f5b86e22a9dbee1313a31f71e2e9fa33ab787bb5fde7fb0",
-    "medium_autoreg_lstm":              "4ab59b18d77092c0dae04f1c4ef9103ce7e1f5dba684a35ea23050a024ee0d8a",
-    "deeper_autoreg_lstm_2":            "27bf878216a1e7aa7f43d075e63825845ff52d86024a2786872257196efa995a",
-    "deeper_autoreg_lstm":              "5169cc13b5f9254ccc433f6a8efd00509cdc17a9f6be96b3228ea92d5859ee8f",
+    "mini_transformer":                 "f463d55d73edb17315f5929a821a4b27af79743abf3ad84861d5b83ded7df725",
+    "small_transformer":                "2eaea19a260a47d34d64f0ff038f86d0b5fdb691a30ddf56fdfa41686fea7af2",
+    "medium_transformer":               "ee0f18968c08754fa12ce79085c5a0cd8b2a137448615f02717d0b1c21d0f453",
+    "deeper_transformer_2":             "ab2e0fff0d78133b9720ac45cebc308f35f00f980bdb62820a0bbc3880c0d54e",
+    "deeper_transformer":               "7e0b75872d6305c3565039bcdb6cc46d64b5e82a0e9a4071550584dd9bd631cc",
+    "mini_lstm":                        "024200237eafbb027f52862b1499db86a7be89449d95f74eb9b591e1b04e0710",
+    "small_lstm":                       "9f9f92edd9e23eafe2d58272a86a9776e4f452e347b14ffbde57de144b8c1e05",
+    "medium_lstm":                      "cf48ee70ef80ce0f757c5ed9f6338a82d361ecf7c93e0b0de4125e09f889b367",
+    "deeper_lstm_2":                    "d1f4ae8d27da0468dc2dbe785860886b5b2f6ef8a5f798b25318b3237be40a40",
+    "deeper_lstm":                      "229bf22e285b5ad6c7534e72b09a712680675e2e56d400c4062a9a2773cb7990",
+    "mini_autoreg_lstm":                "5cf51c6993867d7737f5a053b544509ddd45dd7b086843197310e3448946fb86",
+    "small_autoreg_lstm":               "9fc66c1fa0b606de758d5151f40841a5dda629ad8ba0400a34b73bc505c0090c",
+    "medium_autoreg_lstm":              "39a0b887456c0d2ca953c32feb49425bb5058ef7ba738d9b8321abc46a2dd2cb",
+    "deeper_autoreg_lstm_2":            "63a0021683114239d2b7d93cdbb8bcef9ef554d1442733a87f944bf2bef300f1",
+    "deeper_autoreg_lstm":              "8af1d30960652c90a172d0791101cacbc51371d0bcaf1adcd7e302206ff66ccf",
     "deeper_transformer_3":             "9461ff75a9ba77db5da51a1b5fada21338c567b2a2ef416a9119c824e6ddbda7",
     "even_deeper_lstm":                 "df47013c10a62c3f017849b004b7084ad7bf1cc779eef1d389a8846ac3b71ff4",
-    "ED_small_seq2seq_trans":           "35fb3eea3761d56961a9c09b02f0d52618d0123d50b91a2597ef4ba496e698dc",
+    "ed_small_seq2seq_trans":           "35fb3eea3761d56961a9c09b02f0d52618d0123d50b91a2597ef4ba496e698dc",
     "mini_seq2seq_trans":               "01058ae322b6819ce27cccb504789962225ed68d049bfa89b9bbe82952ded8af",
     "small_seq2seq_trans":              "44d49277a704a9415aa90a50c44a1e4accf98772bc01997a8c9a165dea30f7a0",
     "medium_seq2seq_trans":             "33bd613dc8b2f9321a6b8c911949793a0b9659edd680af8e8d75e021754c726b",
@@ -158,7 +168,7 @@ models_filtered = {
     "deeper_transformer": "ed061ec36b5da9062190568f4139a052b47d0b4613e6fc47008a0e8b94279175",
     "deep_seq2seq_trans": "9ebdc13ed589c3774c61513d5bb228d7cd6bfa5fd50fe5ac0a4fae28526366ea",
     "dropoutincrease_seq2seq_trans": "d3985a698d3a7f596fde9b657fd1852a6a8f2c662fd2d22ea6c980075efaf4b7",
-    "ED_small_seq2seq_trans": "7645474977750a086dd5fca7ead2a5531089b3287f842e47271b1f595c8e0aa1",
+    "ed_small_seq2seq_trans": "7645474977750a086dd5fca7ead2a5531089b3287f842e47271b1f595c8e0aa1",
     "even_deeper_lstm": "a97e70b51b58974dbe9b71dba47a15d7b7c7eda7ad58313486a28b68e2fb1f45",
     "linear_model": "3443d7bb965df040bda2f21dce79e1cd02ba5927851310090d3aa1f715cdb9d2",
     "medium_autoreg_lstm": "9e6c19acf1fefdfcbcec195c7426299f80cea1db69fa8b9fda2d1965dc8cba80",
@@ -219,3 +229,16 @@ class Models:
     
     def __len__(self):
         return len(self.models)
+
+class Metrics:
+    _metrics = {
+        ('deeper_autoreg_lstm_2', 'test'): "6437375f046a8b78389028cb44656f5dec036b3a91ec7246d447f285d61256ed",
+        ('deeper_autoreg_lstm_2', 'val'): "b2bce1fe9c11df63b62b42c1a5bf7c451dfef82ab61248d4628afc583a186bc6",
+        ('deeper_transformer', 'val'): "db18b93c0e06a916a31977f8992840a32b8ad08e8fad942ee51359bc87adf405",
+    }
+    
+    def pkl(self, model_name: str, split: str):
+        hash = bytes.fromhex(self._metrics[(model_name, split)])
+        filename = f'{model_name}_results_{split}.pkl'
+        fdef = FileDef(paths.RESULTS_FILTERED_DIR / filename, filename, hash)
+        return get_by_fdef(fdef)

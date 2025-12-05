@@ -3,7 +3,8 @@ from model_lstm import LSTMModel
 from model_autoregressive import Seq2SeqLSTM
 from transformer_model import TrajectoryTransformer30to10
 from model_baseline import LinearModel
-from model_seq2seq_transformer import Seq2SeqTransformer
+from model_seq2seq_transformer_ed import Seq2SeqTransformerEd
+from model_seq2seq_transformer_teacherforce import Seq2SeqTransformerTf
 
 transformer_configs = [
     {   
@@ -104,7 +105,7 @@ transformer_configs = [
     },
 ]
 
-transformer_seq2seq_configs = [
+transformer_seq2seq_tf_configs = [
     {
         "name": "mini_seq2seq_trans",
         "epochs": 1,
@@ -201,6 +202,26 @@ transformer_seq2seq_configs = [
             "num_dec_layers": 3,
             "dim_feedforward": 256,
             "dropout": 0.4,
+        },
+        "optimizer_args": {
+            "lr": 5e-4,
+            "weight_decay": 1e-4,
+        },
+    },
+]
+
+transformer_seq2seq_notf_configs = [
+    {
+        "name": "ed_small_seq2seq_trans",
+        "epochs": 50,
+        "batch_size": 128,
+        "model_kwargs": {
+            "d_model": 16,
+            "nhead": 4,
+            "num_enc_layers": 3,
+            "num_dec_layers": 3,
+            "dim_feedforward": 256,
+            "dropout": 0.1,
         },
         "optimizer_args": {
             "lr": 5e-4,
@@ -375,7 +396,9 @@ def find_cfg(name):
     if "autoreg" in name:
         return Seq2SeqLSTM, [cfg for cfg in autoreg_configs if cfg['name'] == name][0]
     elif "seq2seq_trans" in name:
-        return Seq2SeqTransformer, [cfg for cfg in transformer_seq2seq_configs if cfg['name'] == name][0]
+        if name.startswith("ed_"):
+            return Seq2SeqTransformerEd, [cfg for cfg in transformer_seq2seq_notf_configs if cfg['name'] == name][0]
+        return Seq2SeqTransformerTf, [cfg for cfg in transformer_seq2seq_tf_configs if cfg['name'] == name][0]
     elif "transformer" in name:
         return TrajectoryTransformer30to10, [cfg for cfg in transformer_configs if cfg['name'] == name][0]
     elif name == "linear_model":
@@ -401,7 +424,7 @@ def validate():
             valid = False
             print("\n".join(issues))
             print(cfg)
-    for cfg in transformer_seq2seq_configs:
+    for cfg in transformer_seq2seq_tf_configs:
         issues = []
         for key in mandatory_keys:
             if not key in cfg:

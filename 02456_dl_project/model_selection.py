@@ -4,17 +4,16 @@ import numpy as np
 
 
 # Rank the models based on metric value
-def rank_models(results_dir, metric="val_mse"):
+def rank_models(result_files, metric="val_mse"):
     results = []
     
-    for file in results_dir.glob("*.json"):
+    for model_name in result_files:
+        file = result_files[model_name]
         with open(file, "r") as f:
             data = json.load(f)
         
-        name = data.get("config", {}).get("name", file.stem)
-        metric_values = data.get("history", {}).get(metric, [])
-        if not metric_values:
-            continue
+        name = data["config"]["name"]
+        metric_values = data["history"][metric]
 
         best_value = min(metric_values)
         results.append((name, best_value, data))

@@ -18,7 +18,7 @@ from model_baseline import LinearModel
 from util import isonow
 from configurations import *
 
-FILTER_STATIONARY = False
+FILTER_STATIONARY = True
 
 def train_linear_model(train: torch.Tensor, val: torch.Tensor):
     model = LinearModel.train(train)
@@ -59,7 +59,6 @@ def train_one(name):
             'history': history,
             'checkpoint_path': training.checkpoint_model_path(cfg['name']),
         }
-    torch.save(results, paths.CHECKPOINTS_DIR / f"{name}_results-{now}.pt")
     del results['model']  # remove model from saved results for JSON serialization
     results['checkpoint_path'] = str(results['checkpoint_path'])
     with paths.CHECKPOINTS_DIR.joinpath(f"{name}_results-{now}.json").open('w') as f:
