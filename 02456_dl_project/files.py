@@ -60,14 +60,22 @@ def file_getter(fdef: FileDef):
     
 
 class Splits:
-    @staticmethod
-    def get_split(name: str, hexdigest: str):
-        fdef = FileDef(paths.SPLITS_DIR / f'{name}.parquet', f'data_splits/{name}.parquet', bytes.fromhex(hexdigest))
-        return file_getter(fdef)
+    _splits = {
+        'train': '077dc2e5279860f0c705914bf7a6ea606615c36727e1866fc7872f4c59982c2d',
+        'val': '8bc2e7dd921cd3f3e5ab4f609622522327c376fa104fbabc3effc99d67e135a5',
+        'test': 'ee8c6e556e2844f13f59f704f67565c48f836b233ebb7fd0de21144ad30b65a1',
+    }
     
-    train = get_split('train', '077dc2e5279860f0c705914bf7a6ea606615c36727e1866fc7872f4c59982c2d')
-    val = get_split('val', '8bc2e7dd921cd3f3e5ab4f609622522327c376fa104fbabc3effc99d67e135a5')
-    test = get_split('test', 'ee8c6e556e2844f13f59f704f67565c48f836b233ebb7fd0de21144ad30b65a1')
+    def __getitem__(self, name):
+        hash = bytes.fromhex(self._splits[name])
+        fdef = FileDef(paths.SPLITS_DIR / f'{name}.parquet', f'data_splits/{name}.parquet', hash)
+        return get_by_fdef(fdef)
+    
+    def __iter__(self):
+        return iter(self._splits)
+    
+    def __len__(self):
+        return len(self._splits)
 
 results_filtered = {
     "linear_model":                     "9a8438e4e2bbe48191c9ae9293c8c679f32c645f488e363c90f5f32cca65fe9e",
@@ -131,8 +139,7 @@ class Results:
             raise KeyError(f"no such model: {name}")
         remote_dir = 'results' if self.filtered else 'results_unfiltered'
         fdef = FileDef(self.dir / f'{name}_results.json', f'{remote_dir}/{name}_results.json', bytes.fromhex(self.models[name]))
-        file = get_by_fdef(fdef)
-        return file
+        return get_by_fdef(fdef)
     
     def __iter__(self):
         return iter(self.models)
@@ -205,8 +212,7 @@ class Models:
             raise KeyError(f"no such model: {name}")
         remote_dir = 'results' if self.filtered else 'results_unfiltered'
         fdef = FileDef(self.dir / f'{name}_best.pt', f'{remote_dir}/{name}_best.pt', bytes.fromhex(self.models[name]))
-        file = get_by_fdef(fdef)
-        return file
+        return get_by_fdef(fdef)
     
     def __iter__(self):
         return iter(self.models)
