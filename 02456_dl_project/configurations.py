@@ -1,7 +1,7 @@
 import itertools
 from model_lstm import LSTMModel
 from model_autoregressive import Seq2SeqLSTM
-from transformer_model import TrajectoryTransformer30to10
+from model_transformer import TrajectoryTransformer30to10
 from model_baseline import LinearModel
 from model_seq2seq_transformer_ed import Seq2SeqTransformerEd
 from model_seq2seq_transformer_teacherforce import Seq2SeqTransformerTf
