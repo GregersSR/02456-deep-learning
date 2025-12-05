@@ -9,7 +9,22 @@ from paths import RESULTS_FILTERED_DIR, RESULTS_UNFILTERED_DIR
 from configurations import find_cfg
 import pickle
 from plot_trajectory import plot_paths
-from model_selection import rank_models, plot_model_losses, haversine_np
+from model_selection import haversine_np
+import json
+
+def select_model(json_file):
+    json_file = RESULTS_FILTERED_DIR / json_file
+
+    if not json_file.exists():
+        raise FileNotFoundError(f"No JSON file found in {json_file}")
+    
+    with open(json_file, "r") as f:
+        model_data = json.load(f)
+
+    model_name = model_data.get("config", {}).get("name", json_file.stem)
+
+    return model_name, model_data
+
 
 def load_scaler(filtered=True):
     scaler_file = "scaler_filtered.save" if filtered else "scaler_unfiltered.save"
@@ -37,7 +52,6 @@ def load_data(validation=True, filtered=True, batch_size = 512):
 
     return loader, scaler
 
-# evaluate the model:
 
 def best_model(best_model_name, best_model_data, device, filtered = True):
     """
@@ -92,13 +106,6 @@ def compute_haversine(y, y_pred, all_mse, sorted_indices, scaler):
 
             # Save group mean
             group_means.append(mean_hav_km)
-
-            # # --- Pretty step-wise print for groups ---
-            # print(f"\nSample {idx} (MSE={all_mse[idx]:.6f}) – Haversine per step:")
-            # for step, d in enumerate(dists_km, start=1):
-            #     print(f"  Step {step:02d} → {d:10.6f} km")
-
-            # print(f"  → Mean Haversine for this sample: {mean_hav_km:.6f} km")
 
             group_means_dict[group_name] = group_means
             return groups, group_means_dict
@@ -161,11 +168,12 @@ def plot_samples(x, y, y_pred, all_mse, groups, group_means_dict, scaler):
 if __name__ == "__main__":
     device = training.determine_device()
     filtered = True
-    metrics = ["val_mse", "val_rmse", "val_mae"]
-    best_model_name, best_score, best_model_data = rank_models(RESULTS_FILTERED_DIR, metrics[0])
+    # metrics = ["val_mse", "val_rmse", "val_mae"]
+    # best_model_name, best_score, best_model_data = rank_models(RESULTS_FILTERED_DIR, metrics[0])
+    model_name, model_data = select_model("small_transformer_results-2025-11-27T10:12:31.json")
     # CHANGE validation to FALSE for the test
     loader, scaler = load_data(validation=True, filtered=filtered)
-    model = best_model(best_model_name, best_model_data, device=device, filtered=True)
-    results = compute_MSE_per_sample(model, loader, device, best_model_name)
+    model = best_model(model_name, model_data, device=device, filtered=True)
+    results = compute_MSE_per_sample(model, loader, device, model_name)
 
     
