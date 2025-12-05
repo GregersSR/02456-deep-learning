@@ -139,6 +139,11 @@ def load_val(scaler: StandardScaler, filter_stationary: bool) -> AisDataset:
     x_val, y_val = _load_raw("val", filter_stationary)
     return AisDataset(x_val, y_val, scaler=scaler)
 
+def load_test(scaler: StandardScaler, filter_stationary: bool) -> AisDataset:
+    print("Loading TEST...")
+    x_test, y_test = _load_raw("test", filter_stationary)
+    return AisDataset(x_test, y_test, scaler=scaler)
+
 
 if __name__ == '__main__':
     # save scaler for later use
