@@ -9,7 +9,7 @@ from paths import RESULTS_FILTERED_DIR, RESULTS_UNFILTERED_DIR
 from configurations import find_cfg
 import pickle
 from plot_trajectory import plot_paths
-
+from model_selection import rank_models, plot_model_losses, haversine_np
 
 def load_scaler(filtered=True):
     scaler_file = "scaler_filtered.save" if filtered else "scaler_unfiltered.save"
@@ -21,6 +21,7 @@ def load_data(validation=True, filtered=True, batch_size = 512):
     """
     Returns validation dataloader based on whether the model is filtered or unfiltered.
     """
+    scaler = load_scaler(filtered)
 
     if validation == True:
         ds = load_val(filter_stationary=filtered, scaler=load_scaler(filtered))
@@ -34,11 +35,11 @@ def load_data(validation=True, filtered=True, batch_size = 512):
         shuffle=False
     )
 
-    return loader
+    return loader, scaler
 
 # evaluate the model:
 
-def best_model(best_model_name: str, best_model_data: dict, device: str, filtered = True):
+def best_model(best_model_name, best_model_data, device, filtered = True):
     """
     Loads a trained model and set it to evaluation
     """
@@ -55,6 +56,52 @@ def best_model(best_model_name: str, best_model_data: dict, device: str, filtere
     model.eval()
 
     return model
+
+
+def compute_haversine(y, y_pred, all_mse, sorted_indices, scaler):
+    n_samples = len(all_mse)
+
+    groups = {
+        "Best": sorted_indices[:3],
+        "Q1": sorted_indices[n_samples//4:n_samples//4+3],
+        "Median": sorted_indices[n_samples//2:n_samples//2+3],
+        "Q3": sorted_indices[3*n_samples//4:3*n_samples//4+3],
+        "Worst": sorted_indices[-3:]
+    }
+
+    group_means_dict = {}
+
+    print("\n=== Haversine Distance Evaluation by Groups ===")
+
+    for group_name, indices in groups.items():
+        group_means = []
+
+        print(f"\n### {group_name} group ###")
+
+        for idx in indices:
+
+            y_true_scaled = y[idx]
+            y_pred_scaled = y_pred[idx]
+
+
+            y_true_unscaled = scaler.inverse_transform(y_true_scaled)
+            y_pred_unscaled = scaler.inverse_transform(y_pred_scaled)
+
+            # Compute Haversine
+            dists_km, mean_hav_km = haversine_np(y_true_unscaled, y_pred_unscaled)
+
+            # Save group mean
+            group_means.append(mean_hav_km)
+
+            # # --- Pretty step-wise print for groups ---
+            # print(f"\nSample {idx} (MSE={all_mse[idx]:.6f}) – Haversine per step:")
+            # for step, d in enumerate(dists_km, start=1):
+            #     print(f"  Step {step:02d} → {d:10.6f} km")
+
+            # print(f"  → Mean Haversine for this sample: {mean_hav_km:.6f} km")
+
+            group_means_dict[group_name] = group_means
+            return groups, group_means_dict
 
 
 
@@ -102,8 +149,23 @@ def compute_MSE_per_sample(model, val_loader, device, output_name: str):
     return results
 
 
-def plot_sample(x, y, y_pred, idx, title, filtered=True):
-    x_sample = x[idx]
-    y_sample = y[idx]
-    y_pred_sample = y_pred[idx]
-    return plot_paths(x_sample, y_sample, y_pred_sample, title, scaler=load_scaler(filtered))
+def plot_samples(x, y, y_pred, all_mse, groups, group_means_dict, scaler):
+    for group_name, indices in groups.items():
+        group_mean_haversine = np.mean(group_means_dict[group_name])
+        print(f"\nPlotting 3 samples from {group_name} group:")
+        for idx in indices:
+            title = f"{group_name} Sample \n (MSE={all_mse[idx]:.6f} and Haversine distance={group_mean_haversine:.4f} km.)"
+            plot_paths(x[idx], y[idx], y_pred[idx], title, scaler=scaler)
+
+
+if __name__ == "__main__":
+    device = training.determine_device()
+    filtered = True
+    metrics = ["val_mse", "val_rmse", "val_mae"]
+    best_model_name, best_score, best_model_data = rank_models(RESULTS_FILTERED_DIR, metrics[0])
+    # CHANGE validation to FALSE for the test
+    loader, scaler = load_data(validation=True, filtered=filtered)
+    model = best_model(best_model_name, best_model_data, device=device, filtered=True)
+    results = compute_MSE_per_sample(model, loader, device, best_model_name)
+
+    
