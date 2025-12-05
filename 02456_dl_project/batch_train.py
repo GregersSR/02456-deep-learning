@@ -6,17 +6,13 @@ Results are saved to `checkpoints/` directory.
 
 import json
 import sys
-from model_seq2seq_transformer import Seq2SeqTransformer
 import torch
 import training
 import dataloader
 import paths
-from model_lstm import LSTMModel
-from model_autoregressive import Seq2SeqLSTM
-from model_transformer import TrajectoryTransformer30to10
 from model_baseline import LinearModel
 from util import isonow
-from configurations import *
+from configurations import find_cfg
 
 FILTER_STATIONARY = True
 
