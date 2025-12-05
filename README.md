@@ -2,6 +2,14 @@
 This repository contains the code for the project part of 02456 Deep Learning at DTU, fall 2025.
 We investigate ship trajectories in and around Danish waters, aiming to predict future vessel movement based on past trajectory.
 
+## Initializing the environment
+In order to initialize the environment to run our code, install the toplevel directory as a Python package. If using virtualenvs, execute the following in the repository root:
+```sh
+$ python3 -m venv venv
+$ source venv/bin/activate
+$ (venv) pip install .
+```
+
 ## Problem statement
 The objective of this project is to predict the short-term trajectories of vessels using diverse models (linear, LSTM and transformer).
 * **Prediction Window:** Predict the **next 50 minutes** (10 timesteps).
