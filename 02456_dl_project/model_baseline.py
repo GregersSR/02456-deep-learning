@@ -3,8 +3,6 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 import torch
 
-LinearModel = LinearRegression
-
 class LinearModel(LinearRegression):
     def __init__(self):
         super().__init__()

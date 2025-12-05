@@ -40,20 +40,6 @@ def train_linear_model(train: torch.Tensor, val: torch.Tensor):
     }
 
 
-def checkpoint_exists(name):
-    return training.checkpoint_model_path(name).exists()
-
-def remove_existing(configs):
-    """Returns only configs for which no checkpoint exists yet."""
-    filtered = []
-    for cfg in configs:
-        if checkpoint_exists(cfg['name']):
-            print(f"Skipping existing model checkpoint: {cfg['name']}")
-        else:
-            print(f"Will train model: {cfg['name']}")
-            filtered.append(cfg)
-    return filtered
-
 def load_data():
     train, scaler = dataloader.load_train(filter_stationary=FILTER_STATIONARY)
     val = dataloader.load_val(scaler or train.scaler, filter_stationary=FILTER_STATIONARY)

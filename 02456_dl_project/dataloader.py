@@ -7,9 +7,9 @@ import torch
 import tqdm
 from torch.utils.data import Dataset
 import pyarrow.parquet as pq
-from paths import SPLITS_DIR
 from sklearn.preprocessing import StandardScaler
 import joblib
+import files
 
 LOOKBACK = 30
 N_PREDICT = 10
@@ -116,7 +116,7 @@ class AisDataset(Dataset):
 
 # raw tensor loaders (for fitting scaler)
 def _load_raw(split_name: str, filter_stationary: bool) -> Pair[Tensor]:
-    df = pq.read_table(SPLITS_DIR / f"{split_name}.parquet").to_pandas()
+    df = pq.read_table(files.Splits()[split_name]).to_pandas()
     return to_tensors(df, filter_stationary)
 
 

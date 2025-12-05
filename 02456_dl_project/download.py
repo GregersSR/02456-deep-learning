@@ -4,8 +4,6 @@ from collections.abc import Generator
 import sys
 from typing import Iterable
 import requests
-import os
-import multiprocessing
 from io import BytesIO
 import calendar
 import functools
@@ -18,6 +16,7 @@ import pandas as pd
 from zip_reader import read_zip
 from preprocessing import preprocess_full, preprocess_partial
 from paths import PROCESSED_DATA_DIR
+from util import get_only
 
 MONTH_URL_TEMPLATE='http://aisdata.ais.dk/{year}/aisdk-{year}-{month:02d}.zip'
 DAY_URL_TEMPLATE='http://aisdata.ais.dk/{year}/aisdk-{year}-{month:02d}-{day:02d}.zip'
@@ -33,18 +32,6 @@ else:
 def fmt_year_month(year: int, month: int):
     assert year >= 1000 and 1 <= month <= 12
     return f"{year}-{month:02d}"
-
-def get_only(it: Iterable):
-    ret_val = next(it)
-    assert_stopiter(it)
-    return ret_val
-
-def assert_stopiter(it):
-    try:
-        extra = next(it)
-        raise AssertionError(f"No StopIteration encountered, got {extra}")
-    except StopIteration:
-        pass
 
 def get_day(year: int, month: int, day: int) -> pd.DataFrame:
     debug(f"Getting {year}-{month}-{day}")

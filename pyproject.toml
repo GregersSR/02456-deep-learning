@@ -13,6 +13,7 @@ dependencies = [
     "torch",
     "tqdm",
     "scikit-learn",
+    "requests",
 ]
 
 [build-system]
